@@ -289,14 +289,8 @@ const LS_KEY="stempeluhr_entries_v2", M_KEY="stempeluhr_master_v1", B_KEY="stemp
   RUN_KEY="stempeluhr_run_v1", S_KEY="stempeluhr_settings_v1", BK_KEY="stempeluhr_backups_v1", WARN_KEY="stempeluhr_warn_dismiss";
 const R=132, C=2*Math.PI*R, $=id=>document.getElementById(id);
 
-const SEED_AGB=[{name:"MGT Stuttgart",satz:60},{name:"MGT Göttingen",satz:60},{name:"MGT Berlin",satz:60},
-  {name:"Monjas Hairdesign",satz:60},{name:"Kosmetikstudio Schaf",satz:60},{name:"Privat Steuern",satz:60}];
-const SEED_AUF=[{titel:"Buchhaltung",agb:"MGT Stuttgart"},{titel:"Löhne",agb:"MGT Stuttgart"},{titel:"Abschluss",agb:"MGT Stuttgart"},
-  {titel:"Buchhaltung",agb:"MGT Göttingen"},{titel:"Löhne",agb:"MGT Göttingen"},{titel:"Abschluss",agb:"MGT Göttingen"},
-  {titel:"Buchhaltung",agb:"MGT Berlin"},{titel:"Löhne",agb:"MGT Berlin"},{titel:"Abschluss",agb:"MGT Berlin"},
-  {titel:"Buchhaltung",agb:"Monjas Hairdesign"},{titel:"Buchhaltung",agb:"Kosmetikstudio Schaf"},{titel:"Löhne",agb:"Kosmetikstudio Schaf"},
-  {titel:"Abschluss",agb:"Kosmetikstudio Schaf"},{titel:"Sonja K.",agb:"Privat Steuern"},{titel:"Björn",agb:"Privat Steuern"},
-  {titel:"David H.",agb:"Privat Steuern"},{titel:"Stefan K.",agb:"Privat Steuern"},{titel:"Alisa",agb:"Privat Steuern"}];
+const SEED_AGB=[{name:"Stuttgart",satz:60}];
+const SEED_AUF=[{titel:"Buchhaltung",agb:"Stuttgart"},{titel:"Löhne",agb:"Stuttgart"},{titel:"Abschluss",agb:"Stuttgart"}];
 
 let master=loadMaster(), entries=load(), settings=loadSettings();
 let tickTimer=null,pendingDur=0,pendingStart=null,pendingEnd=null,editId=null;
