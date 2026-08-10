@@ -185,13 +185,14 @@
       <div class="panel"><h2>Diese Woche</h2><div id="weekView"></div></div>
       <div class="panel"><h2>Jahr <select class="ghost ctl" id="yearSel" style="padding:3px 6px"></select></h2><div id="yearView"></div></div>
     </div>
-    <div class="panel"><h2>Monatsübersicht</h2><div id="monatsuebersicht"></div></div>
+    <div class="panel"><h2 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Monatsübersicht &amp; Rechnungen<span class="pill" id="invSummary" style="font-weight:500"></span><label style="margin-left:auto;font-size:12px;font-weight:500;display:flex;align-items:center;gap:6px;white-space:nowrap"><input type="checkbox" id="onlyOpenInv" style="width:auto">nur offene Rechnungen</label></h2><div id="monatsuebersicht"></div></div>
     <div class="panel">
       <div class="toolbar">
         <h2 style="margin:0;flex:1">Buchungen</h2>
         <button class="btn-primary" id="addManual">+ Nachtragen</button>
         <input type="date" class="ghost" id="fVon" title="von"><input type="date" class="ghost" id="fBis" title="bis">
         <select class="ghost" id="filterAuftraggeber"><option value="">Alle Auftraggeber</option></select>
+        <span class="pill" id="filterSum" style="font-weight:600"></span>
         <button class="ghost" id="exportPdf">PDF</button>
         <button class="ghost" id="exportCsv">CSV</button>
       </div>
@@ -286,28 +287,36 @@
 
 <script>
 const LS_KEY="stempeluhr_entries_v2", M_KEY="stempeluhr_master_v1", B_KEY="stempeluhr_bearbeiter",
-  RUN_KEY="stempeluhr_run_v1", S_KEY="stempeluhr_settings_v1", BK_KEY="stempeluhr_backups_v1", WARN_KEY="stempeluhr_warn_dismiss";
+  RUN_KEY="stempeluhr_run_v1", R_KEY="stempeluhr_rechnungen_v1", S_KEY="stempeluhr_settings_v1", BK_KEY="stempeluhr_backups_v1", WARN_KEY="stempeluhr_warn_dismiss";
 const R=132, C=2*Math.PI*R, $=id=>document.getElementById(id);
 
 const SEED_AGB=[{name:"Stuttgart",satz:60}];
 const SEED_AUF=[{titel:"Buchhaltung",agb:"Stuttgart"},{titel:"Löhne",agb:"Stuttgart"},{titel:"Abschluss",agb:"Stuttgart"}];
 
-let master=loadMaster(), entries=load(), settings=loadSettings();
+let master=loadMaster(), entries=load(), settings=loadSettings(), rechnungen=loadInv();
 let tickTimer=null,pendingDur=0,pendingStart=null,pendingEnd=null,editId=null;
 let linkedHandle=null, permGranted=false, linkedName="";
 let clock={running:false,paused:false,accumSec:0,segStart:null,bookingStart:null};
 let sortState={key:"start",dir:-1}, lastDeleted=null, toastTimer=null;
 
 const ring=$("ring"); ring.style.strokeDasharray=C; ring.style.strokeDashoffset=C;
+$("onlyOpenInv").checked=!!settings.onlyOpenInv;
 
 function load(){try{return JSON.parse(localStorage.getItem(LS_KEY))||[];}catch(e){return[];}}
 function save(){localStorage.setItem(LS_KEY,JSON.stringify(entries));}
 function loadMaster(){try{const m=JSON.parse(localStorage.getItem(M_KEY));if(m&&m.auftraggeber)return m;}catch(e){}
   return{auftraggeber:JSON.parse(JSON.stringify(SEED_AGB)),auftraege:JSON.parse(JSON.stringify(SEED_AUF))};}
 function saveMaster(){localStorage.setItem(M_KEY,JSON.stringify(master));}
-function loadSettings(){try{const s=JSON.parse(localStorage.getItem(S_KEY));if(s)return Object.assign({rounding:0,hideErledigt:true,pdfHeader:"",pdfLogo:"",pdfSign:false},s);}catch(e){}
-  return{rounding:0,hideErledigt:true,pdfHeader:"",pdfLogo:"",pdfSign:false};}
+function loadSettings(){try{const s=JSON.parse(localStorage.getItem(S_KEY));if(s)return Object.assign({rounding:0,hideErledigt:true,onlyOpenInv:false,pdfHeader:"",pdfLogo:"",pdfSign:false},s);}catch(e){}
+  return{rounding:0,hideErledigt:true,onlyOpenInv:false,pdfHeader:"",pdfLogo:"",pdfSign:false};}
 function saveSettings(){localStorage.setItem(S_KEY,JSON.stringify(settings));}
+function loadInv(){try{return JSON.parse(localStorage.getItem(R_KEY))||{};}catch(e){return{};}}
+function saveInv(){localStorage.setItem(R_KEY,JSON.stringify(rechnungen));}
+function invFor(k){return rechnungen[k]||{gestellt:false,nr:"",datum:""};}
+async function setInv(k,patch,rerender){const v=Object.assign({gestellt:false,nr:"",datum:""},invFor(k),patch);
+  if(!v.gestellt&&!v.nr&&!v.datum)delete rechnungen[k];else rechnungen[k]=v;
+  saveInv();if(rerender)renderMonat();await autoSaveExcel();}
+function todayISO(){const d=new Date();return d.getFullYear()+"-"+two(d.getMonth()+1)+"-"+two(d.getDate());}
 function satzFor(name){const a=master.auftraggeber.find(x=>x.name===name);return a?a.satz:60;}
 
 const nf2=new Intl.NumberFormat("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -489,12 +498,34 @@ function renderBars(el,data,showEur){if(!data.length){el.innerHTML='<div class="
   el.innerHTML=data.map(([name,o])=>'<div class="row"><span class="lbl" style="min-width:90px">'+esc(name)+'</span>'+
     '<div class="bar"><span style="width:'+(max?Math.round(o.sec/max*100):0)+'%"></span></div>'+
     '<span class="val">'+nf2.format(hours(o.sec))+' h'+(showEur?' <small>· '+eur.format(o.eur)+'</small>':'')+'</span></div>').join("");}
-function renderMonat(){const m={};entries.forEach(e=>{const d=dt(e.start),k=d.getFullYear()+"-"+two(d.getMonth()+1)+"|"+e.auftraggeber;
-  if(!m[k])m[k]={monat:d.toLocaleDateString("de-DE",{month:"long",year:"numeric"}),agb:e.auftraggeber,sec:0,satz:e.satz||60,ord:d.getFullYear()*100+d.getMonth()};m[k].sec+=e.dur;});
-  const rows=Object.values(m).sort((a,b)=>b.ord-a.ord||a.agb.localeCompare(b.agb));
-  if(!rows.length){$("monatsuebersicht").innerHTML='<div class="empty">Noch keine Daten.</div>';return;}
-  $("monatsuebersicht").innerHTML='<table><thead><tr><th>Monat</th><th>Auftraggeber</th><th class="num">Stunden</th><th class="num">Satz</th><th class="num">Betrag</th></tr></thead><tbody>'+
-    rows.map(r=>'<tr><td>'+esc(r.monat)+'</td><td>'+esc(r.agb)+'</td><td class="num">'+nf2.format(hours(r.sec))+'</td><td class="num">'+eur.format(r.satz)+'</td><td class="num">'+eur2.format(hours(r.sec)*r.satz)+'</td></tr>').join("")+'</tbody></table>';}
+function monatAgg(){const m={};entries.forEach(e=>{const d=dt(e.start),ym=d.getFullYear()+"-"+two(d.getMonth()+1),k=ym+"|"+e.auftraggeber;
+  if(!m[k])m[k]={key:k,ym:ym,monat:d.toLocaleDateString("de-DE",{month:"long",year:"numeric"}),agb:e.auftraggeber,sec:0,satz:e.satz||60,ord:d.getFullYear()*100+d.getMonth()};m[k].sec+=e.dur;});
+  return Object.values(m).sort((a,b)=>b.ord-a.ord||a.agb.localeCompare(b.agb));}
+function renderMonat(){let rows=monatAgg();
+  const off=rows.filter(r=>!invFor(r.key).gestellt);
+  const offEur=off.reduce((s,r)=>s+hours(r.sec)*r.satz,0);
+  const sum=$("invSummary");
+  if(sum){if(!rows.length){sum.textContent="";sum.className="pill";}
+    else if(off.length){sum.textContent=off.length+" offen \u00b7 "+eur.format(offEur);sum.className="pill warn";}
+    else{sum.textContent="alles abgerechnet";sum.className="pill ok";}}
+  if(settings.onlyOpenInv)rows=rows.filter(r=>!invFor(r.key).gestellt);
+  if(!rows.length){$("monatsuebersicht").innerHTML='<div class="empty">'+(entries.length?"Keine offenen Rechnungen \u2013 alles abgerechnet.":"Noch keine Daten.")+'</div>';return;}
+  $("monatsuebersicht").innerHTML='<table><thead><tr><th>Monat</th><th>Auftraggeber</th><th class="num">Stunden</th><th class="num">Satz</th><th class="num">Betrag</th><th style="text-align:center">Rechnung<br>gestellt</th><th>Rechnungs-Nr.</th><th>Rechnungsdatum</th></tr></thead><tbody>'+
+    rows.map(r=>{const iv=invFor(r.key);
+      return '<tr'+(iv.gestellt?' style="opacity:.7"':'')+'><td>'+esc(r.monat)+'</td><td>'+esc(r.agb)+'</td>'+
+      '<td class="num">'+fmtClock(r.sec)+' <small style="color:var(--muted)">('+nf2.format(hours(r.sec))+')</small></td>'+
+      '<td class="num">'+eur.format(r.satz)+'</td><td class="num">'+eur2.format(hours(r.sec)*r.satz)+'</td>'+
+      '<td style="text-align:center"><input type="checkbox" data-inv="'+esc(r.key)+'"'+(iv.gestellt?" checked":"")+' style="width:auto;cursor:pointer"></td>'+
+      '<td><input class="cell-in" data-invnr="'+esc(r.key)+'" value="'+esc(iv.nr)+'" placeholder="z. B. 2026-014" style="width:120px"></td>'+
+      '<td><input type="date" class="cell-in" data-invdat="'+esc(r.key)+'" value="'+esc(iv.datum)+'" style="width:145px"></td></tr>';}).join("")+
+    '</tbody></table>';
+  $("monatsuebersicht").querySelectorAll("[data-inv]").forEach(cb=>cb.addEventListener("change",async()=>{
+    const k=cb.dataset.inv,g=cb.checked,cur=invFor(k);
+    await setInv(k,{gestellt:g,datum:(g&&!cur.datum)?todayISO():cur.datum},true);}));
+  $("monatsuebersicht").querySelectorAll("[data-invnr]").forEach(inp=>inp.addEventListener("change",async()=>{
+    await setInv(inp.dataset.invnr,{nr:inp.value.trim()},false);}));
+  $("monatsuebersicht").querySelectorAll("[data-invdat]").forEach(inp=>inp.addEventListener("change",async()=>{
+    await setInv(inp.dataset.invdat,{datum:inp.value},false);}));}
 function startOfWeek(d){const x=new Date(d);const day=(x.getDay()+6)%7;x.setHours(0,0,0,0);x.setDate(x.getDate()-day);return x;}
 function renderWeek(){const sow=startOfWeek(new Date());const days=[0,1,2,3,4,5,6].map(i=>{const d=new Date(sow);d.setDate(sow.getDate()+i);return d;});
   const sums=days.map(d=>{const s=d.getTime(),e=s+864e5;return entries.filter(x=>x.start>=s&&x.start<e).reduce((a,x)=>a+x.dur,0);});
@@ -514,6 +545,7 @@ function renderYear(){const years=[...new Set(entries.map(e=>dt(e.start).getFull
   $("yearView").innerHTML=rows?'<table><thead><tr><th>Monat</th><th class="num">Stunden</th><th class="num">Betrag</th></tr></thead><tbody>'+rows+
     '</tbody><tfoot><tr><td style="font-weight:700;border-top:2px solid var(--line)">Gesamt '+cur+'</td><td class="num" style="font-weight:700;border-top:2px solid var(--line)">'+nf2.format(hours(tSec))+'</td><td class="num" style="font-weight:700;border-top:2px solid var(--line)">'+eur.format(tEur)+'</td></tr></tfoot></table>':'<div class="empty">Keine Daten in '+cur+'.</div>';}
 $("yearSel").addEventListener("change",renderYear);
+$("onlyOpenInv").addEventListener("change",e=>{settings.onlyOpenInv=e.target.checked;saveSettings();renderMonat();});
 function render(){const totalSec=entries.reduce((s,e)=>s+e.dur,0),totalEur=entries.reduce((s,e)=>s+hours(e.dur)*(e.satz||60),0);
   const today=new Date();today.setHours(0,0,0,0);const todaySec=entries.filter(e=>e.start>=today.getTime()).reduce((s,e)=>s+e.dur,0);
   $("s-total").textContent=nf2.format(hours(totalSec));$("s-eur").textContent=eur.format(totalEur);$("s-count").textContent=entries.length;$("s-today").textContent=nf2.format(hours(todaySec));
@@ -529,7 +561,15 @@ function tableRows(){let rows=[...entries];const f=$("filterAuftraggeber").value
   const k=sortState.key,dir=sortState.dir;
   rows.sort((a,b)=>{let va=a[k],vb=b[k];if(k==="auftraggeber"||k==="auftrag"){return dir*String(va).localeCompare(String(vb));}return dir*((va||0)-(vb||0));});
   return rows;}
-function renderTable(){const rows=tableRows();
+function sumOf(rows){const sec=rows.reduce((a,e)=>a+e.dur,0),e=rows.reduce((a,x)=>a+hours(x.dur)*(x.satz||60),0);return{sec:sec,eur:e,n:rows.length};}
+function updateFilterSum(rows){const el=$("filterSum");if(!el)return;const t=sumOf(rows);
+  el.textContent=t.n+" Buchung"+(t.n===1?"":"en")+" \u00b7 "+fmtClock(t.sec)+" ("+nf2.format(hours(t.sec))+" h) \u00b7 "+eur2.format(t.eur);
+  el.className="pill "+(t.n?"ok":"");}
+function tableFoot(rows){const t=sumOf(rows);const b='font-weight:700;border-top:2px solid var(--line)';
+  return '<tfoot><tr><td colspan="3" style="'+b+'">Summe ('+t.n+' Buchung'+(t.n===1?"":"en")+')</td>'+
+    '<td class="num" style="'+b+'">'+fmtClock(t.sec)+' <small>('+nf2.format(hours(t.sec))+')</small></td>'+
+    '<td colspan="3" style="'+b+'">'+eur2.format(t.eur)+'</td><td style="'+b+'"></td></tr></tfoot>';}
+function renderTable(){const rows=tableRows();updateFilterSum(rows);
   if(!rows.length){$("tableWrap").innerHTML='<div class="empty">Keine Buchungen für diese Auswahl.</div>';return;}
   const arrow=k=>sortState.key===k?(sortState.dir<0?" ▼":" ▲"):"";
   $("tableWrap").innerHTML='<table><thead><tr>'+
@@ -539,8 +579,8 @@ function renderTable(){const rows=tableRows();
     '<th class="sortable" data-k="auftrag">Auftrag'+arrow("auftrag")+'</th><th>Notiz</th><th></th></tr></thead><tbody>'+
     rows.map(e=>{const s=dt(e.start),en=dt(e.end||e.start+e.dur*1000);return '<tr><td>'+s.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"2-digit"})+'</td>'+
     '<td class="num">'+s.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})+'</td><td class="num">'+en.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})+'</td>'+
-    '<td class="num">'+nf2.format(hours(e.dur))+'</td><td>'+esc(e.auftraggeber)+'</td><td>'+esc(e.auftrag)+'</td>'+
-    '<td style="color:var(--muted)">'+esc(e.notiz||"—")+'</td><td style="white-space:nowrap"><button class="ghost" style="padding:2px 7px" data-edit="'+e.id+'">✎</button> <button class="del" data-id="'+e.id+'">✕</button></td></tr>';}).join("")+'</tbody></table>';
+    '<td class="num">'+fmtClock(e.dur)+' <small style="color:var(--muted)">('+nf2.format(hours(e.dur))+')</small></td><td>'+esc(e.auftraggeber)+'</td><td>'+esc(e.auftrag)+'</td>'+
+    '<td style="color:var(--muted)">'+esc(e.notiz||"—")+'</td><td style="white-space:nowrap"><button class="ghost" style="padding:2px 7px" data-edit="'+e.id+'">✎</button> <button class="del" data-id="'+e.id+'">✕</button></td></tr>';}).join("")+'</tbody>'+tableFoot(rows)+'</table>';
   $("tableWrap").querySelectorAll("th.sortable").forEach(th=>th.addEventListener("click",()=>{const k=th.dataset.k;
     if(sortState.key===k)sortState.dir*=-1;else{sortState.key=k;sortState.dir=(k==="auftraggeber"||k==="auftrag")?1:-1;}renderTable();}));
   $("tableWrap").querySelectorAll(".del").forEach(b=>b.addEventListener("click",async()=>{const id=b.dataset.id;
@@ -556,13 +596,15 @@ function zeitenRows(){return [...entries].sort((a,b)=>a.start-b.start).map(e=>{c
     Ende:en.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}),Stunden:Math.round(hours(e.dur)*100)/100,
     Auftraggeber:e.auftraggeber,Auftrag:e.auftrag,Notiz:e.notiz||""};});}
 function monatRows(){const m={};entries.forEach(e=>{const d=dt(e.start),k=d.getFullYear()+"-"+two(d.getMonth()+1)+"|"+e.auftraggeber;
-  if(!m[k])m[k]={Monat:d.toLocaleDateString("de-DE",{month:"long",year:"numeric"}),Auftraggeber:e.auftraggeber,sec:0,satz:e.satz||60,ord:d.getFullYear()*100+d.getMonth()};m[k].sec+=e.dur;});
-  return Object.values(m).sort((a,b)=>a.ord-b.ord).map(r=>({Monat:r.Monat,Auftraggeber:r.Auftraggeber,Stunden:Math.round(hours(r.sec)*100)/100,"Stundensatz (EUR/h)":r.satz,"Betrag (EUR)":Math.round(hours(r.sec)*r.satz*100)/100}));}
+  if(!m[k])m[k]={key:k,Monat:d.toLocaleDateString("de-DE",{month:"long",year:"numeric"}),Auftraggeber:e.auftraggeber,sec:0,satz:e.satz||60,ord:d.getFullYear()*100+d.getMonth()};m[k].sec+=e.dur;});
+  return Object.values(m).sort((a,b)=>a.ord-b.ord).map(r=>{const iv=invFor(r.key);
+    return{Monat:r.Monat,Auftraggeber:r.Auftraggeber,Stunden:Math.round(hours(r.sec)*100)/100,"Stundensatz (EUR/h)":r.satz,"Betrag (EUR)":Math.round(hours(r.sec)*r.satz*100)/100,
+      "Rechnung gestellt":iv.gestellt?"ja":"nein","Rechnungsnummer":iv.nr||"","Rechnungsdatum":iv.datum||"","Schl\u00fcssel":r.key};});}
 function buildWorkbook(){const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(zeitenRows().length?zeitenRows():[{Datum:"",Start:"",Ende:"",Stunden:"",Auftraggeber:"",Auftrag:"",Notiz:""}]),"Zeiten");
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(master.auftraggeber.map(a=>({Name:a.name,"Stundensatz (EUR/h)":a.satz}))),"Auftraggeber");
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(master.auftraege.map(a=>({"Auftrags-ID":a.id||"",Titel:a.titel,Auftraggeber:a.agb,Status:a.status||"offen"}))),"Aufträge");
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(monatRows().length?monatRows():[{Monat:"",Auftraggeber:"",Stunden:"","Stundensatz (EUR/h)":"","Betrag (EUR)":""}]),"Monatsübersicht");
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(monatRows().length?monatRows():[{Monat:"",Auftraggeber:"",Stunden:"","Stundensatz (EUR/h)":"","Betrag (EUR)":"","Rechnung gestellt":"","Rechnungsnummer":"","Rechnungsdatum":"","Schl\u00fcssel":""}]),"Monatsübersicht");
   return wb;}
 function parseDE(datum,zeit){if(datum==null||datum==="")return null;const ds=String(datum).trim();
   const p=ds.split(/[.\/-]/).map(x=>parseInt(x,10));if(p.length<3||isNaN(p[0]))return null;let d=p[0],m=p[1],y=p[2];if(y<100)y+=2000;
@@ -581,6 +623,12 @@ function applyWorkbook(wb){
     const s=st||Date.now();return{id:s+Math.floor(Math.random()*1000),start:s,end:en||(s+dur*1000),dur,
       auftraggeber:r.Auftraggeber||"Ohne Auftraggeber",auftrag:r.Auftrag||"Ohne Auftrag",notiz:r.Notiz||"",satz:satzFor(r.Auftraggeber)};});
     save();}
+  const mon=getSheet(wb,/Monats/i);
+  if(mon&&mon.length){const r2={};mon.forEach(r=>{const k=String(r["Schl\u00fcssel"]||r["Schluessel"]||"").trim();if(!k)return;
+    const g=/^(ja|x|true|1|yes)$/i.test(String(r["Rechnung gestellt"]||"").trim());
+    const nr=String(r["Rechnungsnummer"]||"").trim(),dat=String(r["Rechnungsdatum"]||"").trim();
+    if(g||nr||dat)r2[k]={gestellt:g,nr:nr,datum:dat};});
+    rechnungen=r2;saveInv();}
   render();
 }
 
