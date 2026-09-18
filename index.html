@@ -645,6 +645,15 @@ const WB = (function(){
 const WB_AB_LS = 'wb-auftragsbuch-data';
 const WB_ZEIT_LS = 'wb-stempeluhr-summe';
 
+/* Aussehen gilt für die ganze Werkbank. Geschrieben werden beide
+   Schlüssel — jedes Werkzeug liest beim Start seinen eigenen, und so
+   finden alle denselben Stand vor. Gemeldet wird zusätzlich über den
+   Bus, damit offene Fenster sofort mitziehen. */
+const WB_THEME_KEYS = ['wb-theme', 'wb-cockpit-theme'];
+function wbThemeSichern(t){
+  WB_THEME_KEYS.forEach(k => { try { localStorage.setItem(k, t); } catch (e) {} });
+}
+
 const AB_URL="https://maikunverricht.github.io/Auftragsbuch/";
 const AB_LS="wb-auftragsbuch-data", AB_DB="wb-auftragsbuch";
 const AB_OFFEN=new Set(["geplant","aktiv","pausiert"]);
@@ -1288,12 +1297,16 @@ zeitenSpiegeln();
     btn.setAttribute("aria-pressed",hell?"true":"false");
     btn.setAttribute("aria-label",hell?"Dunkles Aussehen einschalten":"Helles Aussehen einschalten");
   }
-  btn.addEventListener("click",function(){
-    var naechstes=root.getAttribute("data-theme")==="light"?"dark":"light";
-    root.setAttribute("data-theme",naechstes);
-    try{localStorage.setItem("wb-theme",naechstes);}catch(e){}
+  function setzen(t,melden){
+    root.setAttribute("data-theme",t);
+    if(melden){wbThemeSichern(t);WB.melden("theme",{theme:t});}
     gleichziehen();
+  }
+  btn.addEventListener("click",function(){
+    setzen(root.getAttribute("data-theme")==="light"?"dark":"light",true);
   });
+  /* Wird die Werkbank anderswo umgeschaltet, zieht diese Seite mit. */
+  WB.horchen("theme",function(n){if(n.theme==="light"||n.theme==="dark")setzen(n.theme,false);});
   gleichziehen();
 })();
 </script>
