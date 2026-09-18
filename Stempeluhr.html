@@ -1,130 +1,384 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Stempeluhr &amp; Auswertung</title>
+<meta name="theme-color" content="#070B11" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#EEF1F6" media="(prefers-color-scheme: light)">
+<meta name="color-scheme" content="dark light">
+<meta name="description" content="Stempeluhr &amp; Auswertung — Zeit erfassen, zuordnen, abrechnen. Ein Werkzeug der Werkbank Unverricht.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=JetBrains+Mono:wght@400;500&display=swap">
+<script>
+/* Aussehen vor dem ersten Bild setzen, sonst blitzt die falsche Fassung auf. */
+(function(){try{var g=localStorage.getItem("wb-theme");
+if(!g)g=window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";
+document.documentElement.setAttribute("data-theme",g);}catch(e){}})();
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-  :root{--panel:#1a2233;--panel2:#222c42;--line:#2c3852;--txt:#e8edf6;--muted:#9aa8c2;
-    --accent:#4f9dff;--accent2:#39d98a;--danger:#ff5d6c;--track:#26324a;--gold:#f2c14e;--warn:#f2c14e;}
+  /* ================================================================
+     KALIBRIERUNG · AUSSEHEN
+     Farben, Maße und Zeiten stehen hier und nur hier — dieselbe
+     Kalibrierung wie auf der Werkbank. Dunkel ist die Grundstellung,
+     hell kippt weiter unten nur die Werte, nie den Aufbau.
+     ================================================================ */
+  :root{
+    color-scheme:dark;
+    /* Flächen und Schrift */
+    --void:#06090E;
+    --bg-grad:linear-gradient(175deg,#070B11 0%,#0A121B 38%,#0C1620 68%,#080C12 100%);
+    --line:rgba(255,255,255,.09);
+    --line-strong:rgba(255,255,255,.17);
+    --txt:#EDF0F3;
+    --muted:#9BA6B2;
+    --muted-2:#6B7683;
+    /* Glas: Füllung, Rand, Schatten */
+    --panel:rgba(16,22,31,.55);
+    --panel2:rgba(255,255,255,.045);
+    --glass-edge:rgba(255,255,255,.10);
+    --shadow:0 18px 46px -22px rgba(0,0,0,.75);
+    --shadow-lg:0 16px 32px rgba(0,0,0,.55);
+    /* Akzente */
+    --accent:#F2B33D;            /* Bernstein — führt */
+    --accent-soft:rgba(242,179,61,.14);
+    --accent2:#63D9C4;           /* Türkis — läuft, ist gut */
+    --accent2-soft:rgba(99,217,196,.15);
+    --danger:#E8646E;
+    --danger-soft:rgba(232,100,110,.13);
+    --over:#EE8E6A;
+    --gold:#F2B33D;
+    --warn:#F2B33D;
+    --track:rgba(255,255,255,.08);
+    --on-accent:#12171F;         /* Schrift auf Bernstein */
+    --on-accent2:#07120F;        /* Schrift auf Türkis */
+    --on-danger:#FFFFFF;
+    /* Hintergrund: Farbfelder und Korn */
+    --grain-blend:overlay; --grain-a:.05;
+    --blob-1:#15535C; --blob-2:#1D3E6B; --blob-3:#6B4A16;
+    --blob-a:.5; --blob-a3:.36;
+    /* Schriften */
+    --display:"Archivo","Helvetica Neue",Arial,sans-serif;
+    --body:"Archivo","Helvetica Neue",Arial,sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+    /* Glas und Zeiten */
+    --wb-glas:15px;      /* wie stark Glasflächen den Grund verwischen */
+    --wb-saettigung:1.3; /* wie kräftig die Farbe dahinter bleibt */
+    --t-kurz:.25s;       /* Knöpfe, Verlinkungen */
+    --t-aussehen:.35s;   /* Umschalten hell/dunkel */
+  }
+  /* ---------- Helles Aussehen: Milchglas auf kühlem Papierweiß ---------- */
+  html[data-theme="light"]{
+    color-scheme:light;
+    --void:#EEF1F6;
+    --bg-grad:linear-gradient(175deg,#F5F7FA 0%,#EAEEF4 38%,#E6EBF2 68%,#F2F4F8 100%);
+    --line:rgba(17,28,44,.10);
+    --line-strong:rgba(17,28,44,.20);
+    --txt:#111923;
+    --muted:#4A5563;
+    --muted-2:#7A8493;
+    --panel:rgba(255,255,255,.62);
+    --panel2:rgba(255,255,255,.55);
+    --glass-edge:rgba(255,255,255,.85);
+    --shadow:0 20px 44px -24px rgba(20,36,60,.38);
+    --shadow-lg:0 14px 34px rgba(20,36,60,.16);
+    --accent:#E0A21F;
+    --accent-soft:rgba(224,162,31,.16);
+    --accent2:#2FA894;
+    --accent2-soft:rgba(47,168,148,.16);
+    --danger:#C6404E;
+    --danger-soft:rgba(198,64,78,.11);
+    --over:#D2704A;
+    --gold:#B8791A;
+    --warn:#B8791A;
+    --track:rgba(17,28,44,.08);
+    --on-accent:#1A1305;
+    --on-accent2:#04211C;
+    --grain-blend:multiply; --grain-a:.035;
+    --blob-1:#9DD3DA; --blob-2:#AEC3E6; --blob-3:#E8D2A6;
+    --blob-a:.5; --blob-a3:.42;
+  }
+
+  /* ---------- Grundstellung ---------- */
   *{box-sizing:border-box}
-  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:linear-gradient(160deg,#0d1119,#131a2a);color:var(--txt);min-height:100vh}
-  header{padding:22px 28px 0}
+  html,body{margin:0;padding:0}
+  img,svg{max-width:100%}
+  body{background:var(--void);color:var(--txt);min-height:100vh;
+    font-family:var(--body);font-size:16px;line-height:1.55;
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+    transition:background-color var(--t-aussehen) ease,color var(--t-aussehen) ease}
+  input[type=checkbox],input[type=radio]{accent-color:var(--accent)}
+  ::selection{background:var(--accent-soft);color:var(--txt)}
+
+  /* ---------- Hintergrund: driftende Farbfelder unter Korn ---------- */
+  .bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;
+    background:var(--bg-grad);transition:background var(--t-aussehen) ease}
+  .blob{position:absolute;border-radius:50%;filter:blur(90px);opacity:var(--blob-a);will-change:transform}
+  .b1{width:58vw;height:58vw;min-width:420px;min-height:420px;left:-12vw;top:-16vw;
+    background:radial-gradient(circle,var(--blob-1) 0%,transparent 68%);animation:drift1 34s ease-in-out infinite}
+  .b2{width:52vw;height:52vw;min-width:380px;min-height:380px;right:-14vw;top:24vh;
+    background:radial-gradient(circle,var(--blob-2) 0%,transparent 68%);animation:drift2 41s ease-in-out infinite}
+  .b3{width:46vw;height:46vw;min-width:340px;min-height:340px;left:22vw;bottom:-18vw;
+    background:radial-gradient(circle,var(--blob-3) 0%,transparent 70%);opacity:var(--blob-a3);animation:drift3 47s ease-in-out infinite}
+  @keyframes drift1{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(6vw,7vh,0) scale(1.12)}}
+  @keyframes drift2{0%,100%{transform:translate3d(0,0,0) scale(1.05)}50%{transform:translate3d(-7vw,-5vh,0) scale(.92)}}
+  @keyframes drift3{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(-5vw,-8vh,0) scale(1.15)}}
+  .grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:var(--grain-a);mix-blend-mode:var(--grain-blend);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E")}
+  @media (prefers-reduced-motion:reduce){ .blob{animation:none} }
+
+  /* Alles Bedienbare liegt über Grund und Korn. */
+  header,.warnbanner,.layout,.toast,.topright{position:relative;z-index:2}
+
+  /* ---------- Umschalter für das Aussehen ---------- */
+  .topright{position:fixed;top:18px;right:18px;z-index:19;display:flex;align-items:center;gap:8px}
+  .theme{display:grid;place-items:center;width:34px;height:34px;padding:0;cursor:pointer;
+    border-radius:100px;border:1px solid var(--glass-edge);background:var(--panel);
+    backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);
+    color:var(--muted-2);transition:color var(--t-kurz),background var(--t-kurz)}
+  .theme:hover{color:var(--txt)}
+  .theme:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  .theme svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;
+    stroke-linecap:round;stroke-linejoin:round}
+  /* Das Symbol zeigt, wohin der Knopf führt — nicht, wo man ist. */
+  .theme .ic-moon{display:none}
+  html[data-theme="light"] .theme .ic-moon{display:block}
+  html[data-theme="light"] .theme .ic-sun{display:none}
+  @media (max-width:760px){ .topright{top:14px;right:14px} .theme{width:31px;height:31px} }
+
+  /* ---------- Kopf ---------- */
+  /* Rechts bleibt Luft für den festgepinnten Umschalter. */
+  header{padding:26px 76px 0 28px;max-width:1480px;margin:0 auto}
   .head-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
-  header h1{margin:0;font-size:22px;font-weight:650;letter-spacing:.3px}
-  header p{margin:4px 0 0;color:var(--muted);font-size:13px}
-  .excelbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 4px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:14px}
-  .pill{font-size:12px;padding:6px 12px;border-radius:20px;font-weight:600}
-  .pill.ok{background:rgba(57,217,138,.15);color:var(--accent2)}
-  .pill.warn{background:rgba(242,193,78,.15);color:var(--warn)}
+  .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--muted-2);display:flex;align-items:center;gap:12px;margin:0 0 10px}
+  .eyebrow::after{content:"";height:1px;flex:1;max-width:190px;background:linear-gradient(90deg,var(--line-strong),transparent)}
+  header h1{margin:0;font-family:var(--display);font-size:clamp(28px,4.4vw,40px);font-weight:800;
+    line-height:1.02;letter-spacing:-.035em;font-variation-settings:'wdth' 114,'wght' 800}
+  header h1 em{font-style:normal;background:linear-gradient(94deg,var(--accent),#F7D68C 52%,var(--accent2));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  header p{margin:10px 0 0;color:var(--muted);font-size:13.5px;max-width:60ch}
+  .head-top > div:first-child{padding-right:44px}
+
+  /* ---------- Glasleiste: Excel ---------- */
+  .excelbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:18px 0 4px;padding:12px 14px;
+    background:var(--panel);border:1px solid var(--glass-edge);border-radius:16px;box-shadow:var(--shadow-lg);
+    backdrop-filter:blur(var(--wb-glas)) saturate(var(--wb-saettigung));
+    -webkit-backdrop-filter:blur(var(--wb-glas)) saturate(var(--wb-saettigung))}
   .excelbar .grow{flex:1}
-  .warnbanner{margin:10px 28px 0;padding:11px 16px;background:rgba(255,93,108,.12);border:1px solid rgba(255,93,108,.4);border-radius:12px;color:#ffbfc6;font-size:13px;display:none;align-items:center;gap:12px}
+  .pill{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    padding:6px 12px;border-radius:100px;font-weight:500;border:1px solid var(--line);color:var(--muted)}
+  .pill.ok{background:var(--accent2-soft);color:var(--accent2);border-color:transparent}
+  .pill.warn{background:var(--accent-soft);color:var(--warn);border-color:transparent}
+
+  .warnbanner{margin:12px auto 0;width:calc(100% - 56px);max-width:1424px;padding:11px 16px;
+    background:var(--danger-soft);border:1px solid var(--danger);border-radius:14px;color:var(--danger);
+    font-size:13px;display:none;align-items:center;gap:12px}
   .warnbanner.show{display:flex}
-  .warnbanner button{margin-left:auto;background:none;border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:12px}
-  .layout{display:grid;grid-template-columns:minmax(360px,440px) 1fr;gap:22px;padding:18px 28px 40px;align-items:start}
-  @media(max-width:900px){.layout{grid-template-columns:1fr}}
-  .clock-card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:28px;display:flex;flex-direction:column;align-items:center;gap:16px}
-  .clock-wrap{position:relative;width:300px;height:300px}
-  .clock-wrap svg{transform:rotate(-90deg)}
+  .warnbanner button{margin-left:auto;background:none;border:1px solid var(--line-strong);color:var(--txt);
+    border-radius:9px;padding:5px 10px;cursor:pointer;font-size:12px;font-family:inherit}
+  .warnbanner button:hover{border-color:var(--danger)}
+
+  /* ---------- Gerüst ---------- */
+  .layout{display:grid;grid-template-columns:minmax(360px,440px) 1fr;gap:22px;padding:20px 28px 56px;
+    align-items:start;max-width:1480px;margin:0 auto}
+  @media(max-width:900px){.layout{grid-template-columns:1fr;padding:18px 18px 48px}
+    header{padding:22px 62px 0 18px}.warnbanner{width:calc(100% - 36px)}}
+  /* Ohne das setzen die breiten Tabellen die Spalte auf ihre Mindestbreite
+     und schieben das ganze Gerüst über den Rand hinaus. */
+  .layout > *,.dash > *,.grid2 > *{min-width:0}
+  #tableWrap,#monatsuebersicht,#yearView{overflow-x:auto}
+  #tableWrap::-webkit-scrollbar,#monatsuebersicht::-webkit-scrollbar,#yearView::-webkit-scrollbar{height:8px}
+  #tableWrap::-webkit-scrollbar-thumb,#monatsuebersicht::-webkit-scrollbar-thumb,#yearView::-webkit-scrollbar-thumb{
+    background:var(--line-strong);border-radius:100px}
+
+  /* ---------- Die Uhr ---------- */
+  .clock-card{background:var(--panel);border:1px solid var(--glass-edge);border-radius:22px;padding:28px;
+    display:flex;flex-direction:column;align-items:center;gap:16px;box-shadow:var(--shadow);
+    backdrop-filter:blur(var(--wb-glas)) saturate(var(--wb-saettigung));
+    -webkit-backdrop-filter:blur(var(--wb-glas)) saturate(var(--wb-saettigung))}
+  .clock-wrap{position:relative;width:300px;height:300px;max-width:100%}
+  .clock-wrap svg{transform:rotate(-90deg);width:100%;height:100%}
+  @media(max-width:420px){.clock-card{padding:22px}.clock-wrap{width:250px;height:250px}}
   .ring-track{fill:none;stroke:var(--track);stroke-width:14}
   .ring-prog{fill:none;stroke:var(--accent);stroke-width:14;stroke-linecap:round;transition:stroke .3s}
   .center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
-  .time{font-size:46px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:1px}
-  .time .sec{font-size:18px;color:var(--muted);font-weight:500;margin-left:2px}
-  .state{font-size:12px;text-transform:uppercase;letter-spacing:2px;color:var(--muted)}
-  .btn-main{width:118px;height:118px;border-radius:50%;border:none;cursor:pointer;font-size:16px;font-weight:650;
-    color:#fff;background:var(--accent2);box-shadow:0 6px 20px rgba(57,217,138,.35);transition:transform .1s,background .2s}
-  .btn-main:hover{transform:scale(1.04)}.btn-main:active{transform:scale(.97)}
-  .btn-main.running{background:var(--danger);box-shadow:0 6px 20px rgba(255,93,108,.35)}
+  .time{font-family:var(--display);font-size:46px;font-weight:700;font-variant-numeric:tabular-nums;
+    letter-spacing:-.02em;font-variation-settings:'wdth' 108,'wght' 700}
+  .time .sec{font-size:18px;color:var(--muted);font-weight:500;margin-left:3px;font-variation-settings:'wdth' 100,'wght' 500}
+  .state{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:var(--muted-2)}
+  .btn-main{width:118px;height:118px;border-radius:50%;border:none;cursor:pointer;
+    font-family:var(--display);font-size:16px;font-weight:700;letter-spacing:-.01em;
+    color:var(--on-accent2);
+    background:radial-gradient(circle at 36% 26%,rgba(255,255,255,.4) 0%,rgba(255,255,255,0) 48%),var(--accent2);
+    box-shadow:0 8px 22px -6px var(--accent2),inset 0 -7px 16px rgba(0,0,0,.18);
+    transition:transform .1s,background .2s,box-shadow .2s}
+  .btn-main:hover{transform:scale(1.04)}
+  .btn-main:active{transform:scale(.97)}
+  .btn-main:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+  .btn-main.running{color:var(--on-danger);
+    background:radial-gradient(circle at 36% 26%,rgba(255,255,255,.34) 0%,rgba(255,255,255,0) 48%),var(--danger);
+    box-shadow:0 8px 22px -6px var(--danger),inset 0 -7px 16px rgba(0,0,0,.2)}
   .live-meta{color:var(--muted);font-size:13px;text-align:center;min-height:18px}
-  .clock-ctrl{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted)}
+  .clock-ctrl{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:10.5px;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--muted-2)}
+
+  /* ---------- Kennzahlen ---------- */
   .dash{display:flex;flex-direction:column;gap:18px}
   .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
   @media(max-width:1150px){.cards{grid-template-columns:repeat(2,1fr)}}
-  .stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
-  .stat .k{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.6px}
-  .stat .v{font-size:24px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums}
+  .stat{background:var(--panel);border:1px solid var(--glass-edge);border-radius:16px;padding:15px 17px;
+    box-shadow:var(--shadow-lg);
+    backdrop-filter:blur(var(--wb-glas)) saturate(var(--wb-saettigung));
+    -webkit-backdrop-filter:blur(var(--wb-glas)) saturate(var(--wb-saettigung))}
+  .stat .k{font-family:var(--mono);color:var(--muted-2);font-size:9.5px;text-transform:uppercase;letter-spacing:.16em}
+  .stat .v{font-family:var(--display);font-size:25px;font-weight:700;margin-top:6px;
+    letter-spacing:-.025em;font-variant-numeric:tabular-nums;font-variation-settings:'wdth' 108,'wght' 700}
   .stat .v.eur{color:var(--gold)}
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px 20px}
-  .panel h2{margin:0 0 14px;font-size:15px;font-weight:600}
+
+  /* ---------- Tafeln ---------- */
+  .panel{background:var(--panel);border:1px solid var(--glass-edge);border-radius:18px;padding:19px 21px;
+    box-shadow:var(--shadow-lg);
+    backdrop-filter:blur(var(--wb-glas)) saturate(var(--wb-saettigung));
+    -webkit-backdrop-filter:blur(var(--wb-glas)) saturate(var(--wb-saettigung))}
+  .panel h2{position:relative;margin:0 0 16px;padding-bottom:13px;font-family:var(--display);
+    font-size:15px;font-weight:700;letter-spacing:-.018em;font-variation-settings:'wdth' 106,'wght' 700}
+  /* Die Linie darunter verliert sich nach rechts — wie die Stichlinien auf der Werkbank. */
+  .panel h2::before{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;
+    background:linear-gradient(90deg,var(--line-strong),transparent)}
   .panel h2 .ctl{float:right;font-weight:400}
-  .row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
-  .row:last-child{border-bottom:none}.row .lbl{font-size:14px}
-  .bar{height:8px;border-radius:6px;background:var(--track);flex:1;margin:0 12px;overflow:hidden;max-width:200px}
-  .bar > span{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+  .toolbar h2{padding-bottom:0}
+  .toolbar h2::before{display:none}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+  .row:last-child{border-bottom:none}
+  .row .lbl{font-size:14px}
+  .bar{height:8px;border-radius:100px;background:var(--track);flex:1;margin:0 12px;overflow:hidden;max-width:200px}
+  .bar > span{display:block;height:100%;border-radius:100px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
   .val{font-variant-numeric:tabular-nums;font-weight:600;font-size:14px;min-width:110px;text-align:right}
   .val small{color:var(--muted);font-weight:500}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
   @media(max-width:1150px){.grid2{grid-template-columns:1fr}}
-  .empty{color:var(--muted);font-size:13px;padding:10px 0}
+  .empty{color:var(--muted-2);font-size:13px;padding:10px 0}
+
+  /* ---------- Tabellen ---------- */
   table{width:100%;border-collapse:collapse;font-size:13px}
-  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
-  th{color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
-  th.sortable{cursor:pointer;user-select:none}th.sortable:hover{color:var(--txt)}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line)}
+  th{font-family:var(--mono);color:var(--muted-2);font-weight:400;font-size:9.5px;
+    text-transform:uppercase;letter-spacing:.14em}
+  th.sortable{cursor:pointer;user-select:none}
+  th.sortable:hover{color:var(--txt)}
   td.num,th.num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
-  .del{background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;opacity:.7}.del:hover{opacity:1}
-  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
-  .ghost{background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:7px 12px;border-radius:9px;cursor:pointer;font-size:13px}
-  .ghost:hover{border-color:var(--accent)}
+  tbody tr:hover td{background:var(--panel2)}
+  .del{background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;opacity:.7;font-family:inherit}
+  .del:hover{opacity:1}
+
+  /* ---------- Knöpfe ---------- */
+  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+  .ghost{background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:7px 13px;
+    border-radius:10px;cursor:pointer;font-size:13px;font-family:inherit;
+    transition:border-color var(--t-kurz),color var(--t-kurz),background var(--t-kurz)}
+  .ghost:hover{border-color:var(--accent);background:var(--accent-soft)}
+  .ghost:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   select.ghost,input.ghost{appearance:none}
-  input.ghost{padding:6px 8px}
-  .btn-primary{background:var(--accent);border:none;color:#fff;padding:8px 14px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600}
-  .overlay{position:fixed;inset:0;background:rgba(6,10,18,.72);display:none;align-items:center;justify-content:center;z-index:50;backdrop-filter:blur(3px)}
+  input.ghost{padding:6px 9px}
+  .btn-primary{background:var(--accent);border:none;color:var(--on-accent);padding:8px 15px;border-radius:10px;
+    cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;
+    box-shadow:0 6px 16px -8px var(--accent);transition:transform .1s,filter var(--t-kurz)}
+  .btn-primary:hover{filter:brightness(1.08)}
+  .btn-primary:active{transform:translateY(1px)}
+  .btn-primary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
+  /* ---------- Dialoge ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(6,10,18,.62);display:none;align-items:center;
+    justify-content:center;z-index:50;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+  html[data-theme="light"] .overlay{background:rgba(120,133,150,.4)}
   .overlay.open{display:flex}
-  .modal{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:26px;width:min(460px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.5);max-height:90vh;overflow:auto}
+  .modal{background:var(--panel);border:1px solid var(--glass-edge);border-radius:20px;padding:26px;
+    width:min(460px,92vw);box-shadow:var(--shadow),0 20px 60px rgba(0,0,0,.4);max-height:90vh;overflow:auto;
+    backdrop-filter:blur(22px) saturate(1.5);-webkit-backdrop-filter:blur(22px) saturate(1.5)}
   .modal.xl{width:min(960px,96vw)}
-  .modal h3{margin:0 0 4px;font-size:18px}
+  .modal h3{margin:0 0 5px;font-family:var(--display);font-size:19px;font-weight:700;
+    letter-spacing:-.025em;font-variation-settings:'wdth' 108,'wght' 700}
   .modal .dur-badge{color:var(--accent2);font-weight:700;font-variant-numeric:tabular-nums}
   .modal p{margin:0 0 18px;color:var(--muted);font-size:13px}
   .field{margin-bottom:14px}
-  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
-  .field input,.field textarea,.field select{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:10px 12px;font-size:14px;font-family:inherit}
+  .field label{display:block;font-family:var(--mono);font-size:9.5px;color:var(--muted-2);margin-bottom:7px;
+    text-transform:uppercase;letter-spacing:.16em}
+  .field input,.field textarea,.field select{width:100%;background:var(--panel2);border:1px solid var(--line);
+    border-radius:11px;color:var(--txt);padding:10px 12px;font-size:14px;font-family:inherit}
   .field select{appearance:none}
-  .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--accent)}
+  .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--accent);
+    box-shadow:0 0 0 3px var(--accent-soft)}
   .field textarea{resize:vertical;min-height:60px}
-  .hint{font-size:11px;color:var(--muted);margin-top:4px}
-  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
-  .modal-actions button{padding:10px 18px;border-radius:10px;border:none;cursor:pointer;font-size:14px;font-weight:600}
-  .save{background:var(--accent);color:#fff}
-  .discard{background:transparent;border:1px solid var(--line)!important;color:var(--muted)}
-  details{margin-bottom:12px;border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+  .hint{font-size:11px;color:var(--muted-2);margin-top:5px}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:22px}
+  .modal-actions button{padding:10px 18px;border-radius:11px;border:none;cursor:pointer;
+    font-size:14px;font-weight:700;font-family:inherit}
+  .save{background:var(--accent);color:var(--on-accent);box-shadow:0 6px 16px -8px var(--accent)}
+  .save:hover{filter:brightness(1.08)}
+  .discard{background:transparent;border:1px solid var(--line-strong)!important;color:var(--muted)}
+  .discard:hover{color:var(--txt)}
+  details{margin-bottom:12px;border:1px solid var(--line);border-radius:12px;padding:9px 13px}
   summary{cursor:pointer;font-size:13px;color:var(--muted)}
+
+  /* ---------- Stammdaten ---------- */
   .mgmt-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-bottom:16px}
-  .agb-card{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--panel2)}
+  .agb-card{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--panel2)}
   .agb-head{display:flex;gap:8px;align-items:center;margin-bottom:12px}
   .agb-head .name{flex:1;font-weight:600}
   .agb-jobs{display:flex;flex-direction:column;gap:7px}
   .job-row{display:flex;gap:6px;align-items:center}
   .job-row input.jtitel{flex:1}
   .job-row select.jstatus{flex:0 0 96px;width:96px}
-  .cell-in{background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--txt);padding:6px 8px;font-size:13px;width:100%;font-family:inherit}
-  .cell-in:focus{outline:none;border-color:var(--accent)}
+  .cell-in{background:var(--panel);border:1px solid var(--line);border-radius:9px;color:var(--txt);
+    padding:6px 9px;font-size:13px;width:100%;font-family:inherit}
+  .cell-in:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
   .mini{width:70px!important;flex:0 0 70px!important}
-  .icon-btn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:5px 9px;cursor:pointer;font-size:14px;line-height:1}
+  .icon-btn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:9px;
+    padding:5px 9px;cursor:pointer;font-size:14px;line-height:1;font-family:inherit;
+    transition:border-color var(--t-kurz),color var(--t-kurz)}
   .icon-btn:hover{border-color:var(--accent);color:var(--txt)}
   .icon-btn.danger:hover{border-color:var(--danger);color:var(--danger)}
   .addrow{display:flex;gap:8px;margin-top:10px}
   .addrow input,.addrow select{flex:1;min-width:0}
   .addclient{max-width:460px}
   .newjob{border-style:dashed!important}
-  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 16px;display:none;align-items:center;gap:14px;z-index:80;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+
+  /* ---------- Meldung am Fuß ---------- */
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--panel);
+    border:1px solid var(--glass-edge);border-radius:14px;padding:12px 16px;display:none;align-items:center;
+    gap:14px;z-index:80;box-shadow:var(--shadow);
+    backdrop-filter:blur(18px) saturate(1.5);-webkit-backdrop-filter:blur(18px) saturate(1.5)}
   .toast.show{display:flex}
-  .toast button{background:none;border:none;color:var(--accent);cursor:pointer;font-weight:600;font-size:14px}
+  .toast button{background:none;border:none;color:var(--accent);cursor:pointer;font-weight:700;
+    font-size:14px;font-family:inherit}
+
+  /* ---------- Woche ---------- */
   .weekbars{display:flex;align-items:flex-end;gap:8px;height:120px;padding-top:6px}
   .weekbars .wb{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end}
-  .weekbars .wb .col{width:100%;background:linear-gradient(180deg,var(--accent),var(--accent2));border-radius:5px 5px 0 0;min-height:2px}
-  .weekbars .wb .d{font-size:11px;color:var(--muted)}
-  .weekbars .wb .h{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .weekbars .wb .col{width:100%;background:linear-gradient(180deg,var(--accent),var(--accent2));
+    border-radius:6px 6px 0 0;min-height:2px}
+  .weekbars .wb .d{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-2)}
+  .weekbars .wb .h{font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
+<div class="bg" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span></div>
+<div class="grain" aria-hidden="true"></div>
+<div class="topright">
+  <button class="theme" id="themeBtn" type="button" aria-pressed="false" aria-label="Helles Aussehen einschalten">
+    <svg class="ic-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.3M12 19.1v2.3M2.6 12h2.3M19.1 12h2.3M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4L17 7M7 17l-1.6 1.6"/></svg>
+    <svg class="ic-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.3A8.6 8.6 0 0 1 9.7 3.5a8.6 8.6 0 1 0 10.8 10.8z"/></svg>
+  </button>
+</div>
 <header>
   <div class="head-top">
     <div>
-      <h1>Stempeluhr</h1>
+      <div class="eyebrow">Werkbank Unverricht</div>
+      <h1>Stempel<em>uhr</em></h1>
       <p>Start/Pause/Stopp · Zuordnung nach dem Stoppen · Excel als Speicher</p>
     </div>
     <button class="ghost" id="openMgmt">&#9881; Stammdaten verwalten</button>
@@ -712,6 +966,28 @@ applySettingsUI();autoSnapshot();
 (async()=>{try{const h=await idbGet("excelHandle");if(h){linkedHandle=h;linkedName=h.name;
   const p=h.queryPermission?await h.queryPermission({mode:"readwrite"}):"prompt";permGranted=(p==="granted");}}catch(e){}updateLinkStatus();})();
 render();updateLinkStatus();
+</script>
+<script>
+/* ----------------------------------------------------------------
+   Aussehen: dunkel oder hell — derselbe Schalter wie auf der Werkbank.
+   Das Symbol zeigt, wohin der Knopf führt, nicht wo man gerade ist.
+   ---------------------------------------------------------------- */
+(function(){
+  var root=document.documentElement, btn=document.getElementById("themeBtn");
+  if(!btn) return;
+  function gleichziehen(){
+    var hell=root.getAttribute("data-theme")==="light";
+    btn.setAttribute("aria-pressed",hell?"true":"false");
+    btn.setAttribute("aria-label",hell?"Dunkles Aussehen einschalten":"Helles Aussehen einschalten");
+  }
+  btn.addEventListener("click",function(){
+    var naechstes=root.getAttribute("data-theme")==="light"?"dark":"light";
+    root.setAttribute("data-theme",naechstes);
+    try{localStorage.setItem("wb-theme",naechstes);}catch(e){}
+    gleichziehen();
+  });
+  gleichziehen();
+})();
 </script>
 </body>
 </html>
