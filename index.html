@@ -578,6 +578,73 @@ const R=132, C=2*Math.PI*R, $=id=>document.getElementById(id);
    Buchungen merken sich zusätzlich die IDs. Wird im Auftragsbuch
    umbenannt, ziehen die Namen in den Buchungen von selbst nach.
    ════════════════════════════════════════════════════════════════ */
+
+/* ════════════════════════════════════════════════════════════════
+   WERKBANK-BUS  ·  gleichlautend in jedem Werkzeug
+   ----------------------------------------------------------------
+   Alle Werkzeuge liegen unter derselben Herkunft
+   (maikunverricht.github.io). Damit teilen sie sich Speicher und
+   IndexedDB — der Pfad spielt dafür keine Rolle. Dieser Block macht
+   aus dem gemeinsamen Speicher eine Verbindung: wer etwas ändert,
+   sagt Bescheid; die anderen ziehen nach, ohne dass jemand neu
+   laden muss. Im selben Fenster, im zweiten Tab und in den Kacheln
+   des Cockpits.
+
+   Kein Server, keine gemeinsame Datei: der Block steht in jeder
+   Einzeldatei wortgleich. Ändert er sich, ändert er sich überall.
+
+   Gespiegelte Bestände (Lesekopien, geschrieben nur vom Eigentümer):
+     wb-auftragsbuch-data    Auftraggeber und Aufträge   (Auftragsbuch)
+     wb-stempeluhr-summe     Stunden je Auftrag          (Stempeluhr)
+   ════════════════════════════════════════════════════════════════ */
+const WB = (function(){
+  const KANAL = 'werkbank', WECK = 'wb-signal';
+  const eigen = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  const hoerer = [];
+  let bc = null;
+  try { bc = new BroadcastChannel(KANAL); } catch (e) { /* ältere Browser */ }
+
+  function zustellen(n){
+    if (!n || typeof n !== 'object' || n.von === eigen) return;
+    for (let i = 0; i < hoerer.length; i++) {
+      const h = hoerer[i];
+      if (h.thema && h.thema !== n.thema) continue;
+      try { h.fn(n); } catch (e) {}
+    }
+  }
+  if (bc) bc.onmessage = function(e){ zustellen(e.data); };
+  /* Rückfall für Fenster ohne BroadcastChannel und für Tabs, die den
+     Kanal verpasst haben: das storage-Ereignis feuert in allen
+     übrigen Tabs derselben Herkunft. */
+  addEventListener('storage', function(e){
+    if (e.key !== WECK || !e.newValue) return;
+    try { zustellen(JSON.parse(e.newValue)); } catch (err) {}
+  });
+
+  return {
+    id: eigen,
+    /* Melden, dass sich etwas geändert hat. */
+    melden: function(thema, zusatz){
+      const n = Object.assign({ thema: thema, von: eigen, zeit: Date.now() }, zusatz || {});
+      if (bc) { try { bc.postMessage(n); } catch (e) {} }
+      try { localStorage.setItem(WECK, JSON.stringify(n)); } catch (e) {}
+    },
+    /* Auf ein Thema horchen — oder mit null auf alle. */
+    horchen: function(thema, fn){ hoerer.push({ thema: thema, fn: fn }); },
+    /* Einen gespiegelten Bestand lesen bzw. schreiben. */
+    lesen: function(schluessel){
+      try { const r = localStorage.getItem(schluessel); return r ? JSON.parse(r) : null; }
+      catch (e) { return null; }
+    },
+    schreiben: function(schluessel, wert){
+      try { localStorage.setItem(schluessel, JSON.stringify(wert)); return true; }
+      catch (e) { return false; }
+    }
+  };
+})();
+const WB_AB_LS = 'wb-auftragsbuch-data';
+const WB_ZEIT_LS = 'wb-stempeluhr-summe';
+
 const AB_URL="https://maikunverricht.github.io/Auftragsbuch/";
 const AB_LS="wb-auftragsbuch-data", AB_DB="wb-auftragsbuch";
 const AB_OFFEN=new Set(["geplant","aktiv","pausiert"]);
@@ -711,12 +778,37 @@ const ring=$("ring"); ring.style.strokeDasharray=C; ring.style.strokeDashoffset=
 $("onlyOpenInv").checked=!!settings.onlyOpenInv;
 
 function load(){try{return JSON.parse(localStorage.getItem(LS_KEY))||[];}catch(e){return[];}}
-function save(){localStorage.setItem(LS_KEY,JSON.stringify(entries));}
+function save(){localStorage.setItem(LS_KEY,JSON.stringify(entries));zeitenSpiegeln();}
 function loadSettings(){try{const s=JSON.parse(localStorage.getItem(S_KEY));if(s)return Object.assign({rounding:0,hideErledigt:true,onlyOpenInv:false,pdfHeader:"",pdfLogo:"",pdfSign:false},s);}catch(e){}
   return{rounding:0,hideErledigt:true,onlyOpenInv:false,pdfHeader:"",pdfLogo:"",pdfSign:false};}
 function saveSettings(){localStorage.setItem(S_KEY,JSON.stringify(settings));}
 function loadInv(){try{return JSON.parse(localStorage.getItem(R_KEY))||{};}catch(e){return{};}}
 function saveInv(){localStorage.setItem(R_KEY,JSON.stringify(rechnungen));}
+/* ═══════ Rückkanal zum Auftragsbuch ═══════
+   Das Auftragsbuch liefert die Stammdaten; hier geht eine
+   Zusammenfassung zurück — Sekunden und Wert je Auftrag, mehr nicht.
+   Die Buchungen selbst bleiben, wo sie sind. Das Auftragsbuch zeigt
+   damit neben dem Budget, was tatsächlich gearbeitet wurde. */
+function zeitenSpiegeln(){
+  try{
+    if(typeof entries==="undefined"||!Array.isArray(entries))return;
+    const jeAuftrag={},jeAuftraggeber={};let sec=0,wert=0;
+    entries.forEach(e=>{
+      const w=hours(e.dur)*(e.satz||60);sec+=e.dur;wert+=w;
+      if(e.aufId){const z=jeAuftrag[e.aufId]||(jeAuftrag[e.aufId]={sec:0,eur:0,n:0,letzte:null});
+        z.sec+=e.dur;z.eur+=w;z.n++;if(!z.letzte||e.start>z.letzte)z.letzte=e.start;}
+      if(e.agbId){const z=jeAuftraggeber[e.agbId]||(jeAuftraggeber[e.agbId]={sec:0,eur:0,n:0});
+        z.sec+=e.dur;z.eur+=w;z.n++;}
+    });
+    const l=(typeof clock!=="undefined"&&clock&&clock.running)
+      ?{aktiv:true,pausiert:!!clock.paused,seit:clock.bookingStart||null}:{aktiv:false};
+    const stand={app:"werkbank-stempeluhr",version:1,stand:new Date().toISOString(),
+      gesamt:{sec:sec,eur:wert,buchungen:entries.length},
+      jeAuftrag:jeAuftrag,jeAuftraggeber:jeAuftraggeber,laufend:l};
+    WB.schreiben(WB_ZEIT_LS,stand);
+    WB.melden("zeiten",{stand:stand.stand,laufend:l.aktiv});
+  }catch(e){}
+}
 function invFor(k){return rechnungen[k]||{gestellt:false,nr:"",datum:""};}
 async function setInv(k,patch,rerender){const v=Object.assign({gestellt:false,nr:"",datum:""},invFor(k),patch);
   if(!v.gestellt&&!v.nr&&!v.datum)delete rechnungen[k];else rechnungen[k]=v;
@@ -766,7 +858,8 @@ function updateWarn(){const show=!(linkedHandle&&permGranted)&&entries.length&&!
 $("warnDismiss").addEventListener("click",()=>{localStorage.setItem(WARN_KEY,"1");updateWarn();});
 
 // ---- Uhr mit Pause + Persistenz ----
-function persistRun(){if(clock.running)localStorage.setItem(RUN_KEY,JSON.stringify(clock));else localStorage.removeItem(RUN_KEY);}
+function persistRun(){if(clock.running)localStorage.setItem(RUN_KEY,JSON.stringify(clock));else localStorage.removeItem(RUN_KEY);
+  zeitenSpiegeln();WB.melden("uhr",{aktiv:!!clock.running,pausiert:!!clock.paused});}
 function currentElapsed(){return clock.accumSec+(clock.segStart?(Date.now()-clock.segStart)/1000:0);}
 function uiRunning(){$("toggle").textContent="Stopp";$("toggle").classList.add("running");$("state").textContent="Läuft";
   $("pauseBtn").style.display="";$("pauseBtn").textContent="Pause";}
@@ -1173,6 +1266,14 @@ applySettingsUI();autoSnapshot();
 render();updateLinkStatus();abChip();
 gestartet=true;
 abLaden();
+
+/* ═══════ Am Bus angemeldet ═══════
+   Wird im Auftragsbuch etwas geändert — im anderen Tab oder in der
+   Kachel des Cockpits daneben — kommt es hier ohne Neuladen an.
+   Beim Zurückwechseln auf diesen Tab wird zusätzlich nachgesehen. */
+WB.horchen("auftragsbuch",()=>{abLaden();});
+addEventListener("visibilitychange",()=>{if(!document.hidden)abLaden();});
+zeitenSpiegeln();
 </script>
 <script>
 /* ----------------------------------------------------------------
