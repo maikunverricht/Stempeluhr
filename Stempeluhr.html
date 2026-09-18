@@ -356,6 +356,22 @@ document.documentElement.setAttribute("data-theme",g);}catch(e){}})();
   .toast button{background:none;border:none;color:var(--accent);cursor:pointer;font-weight:700;
     font-size:14px;font-family:inherit}
 
+  /* ---------- Stammdaten: Ansicht aus dem Auftragsbuch ---------- */
+  .head-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  button.pill{cursor:pointer;font-family:var(--mono);transition:border-color var(--t-kurz),color var(--t-kurz)}
+  button.pill:hover{border-color:var(--accent)}
+  .agb-card.ist-inaktiv{opacity:.55}
+  .agb-head .name{flex:1;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .agb-head .satz{font-family:var(--mono);font-size:12px;color:var(--accent);flex:none}
+  .job-row .jtitel{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .job-row .jtitel i{font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--muted-2)}
+  .job-row .jstatus,.agb-head .jstatus{flex:none;width:auto;font-family:var(--mono);font-size:9px;letter-spacing:.12em;
+    text-transform:uppercase;border:1px solid var(--line);border-radius:100px;padding:2px 8px;color:var(--muted-2);white-space:nowrap}
+  .job-row .jstatus.st-aktiv{color:var(--accent2);border-color:var(--accent2)}
+  .job-row .jstatus.st-abgerechnet{color:var(--accent);border-color:var(--accent)}
+  .job-row .jsatz{flex:none;font-family:var(--mono);font-size:11.5px;color:var(--muted-2)}
+  .modal-actions .discard{font-weight:500}
+
   /* ---------- Woche ---------- */
   .weekbars{display:flex;align-items:flex-end;gap:8px;height:120px;padding-top:6px}
   .weekbars .wb{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end}
@@ -381,7 +397,10 @@ document.documentElement.setAttribute("data-theme",g);}catch(e){}})();
       <h1>Stempel<em>uhr</em></h1>
       <p>Start/Pause/Stopp · Zuordnung nach dem Stoppen · Excel als Speicher</p>
     </div>
-    <button class="ghost" id="openMgmt">&#9881; Stammdaten verwalten</button>
+    <div class="head-actions">
+      <button class="pill" id="abChip" type="button" title="Woher die Stammdaten kommen">Auftragsbuch</button>
+      <button class="ghost" id="openMgmt">&#9881; Stammdaten</button>
+    </div>
   </div>
   <div class="excelbar">
     <span class="pill warn" id="linkStatus">Keine Excel verknüpft</span>
@@ -494,20 +513,20 @@ document.documentElement.setAttribute("data-theme",g);}catch(e){}})();
   </div>
 </div>
 
-<!-- Stammdaten-Dialog -->
+<!-- Stammdaten: Ansicht, geführt wird im Auftragsbuch -->
 <div class="overlay" id="mgmtOverlay">
   <div class="modal xl">
-    <h3>Stammdaten verwalten</h3>
-    <p>Jeder Auftraggeber mit Stundensatz und Aufträgen (inkl. Status). Änderungen werden sofort gespeichert.</p>
+    <h3>Stammdaten</h3>
+    <p id="mgmtQuelleText">…</p>
     <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:14px">
-      <input type="checkbox" id="hideErledigt" style="width:auto"> Erledigte Aufträge in der Auswahl ausblenden</label>
+      <input type="checkbox" id="hideErledigt" style="width:auto"> Abgeschlossene Aufträge in der Auswahl ausblenden</label>
     <div id="mgmtList" class="mgmt-list"></div>
-    <div class="addrow addclient">
-      <input id="newAgbName" placeholder="Neuer Auftraggeber">
-      <input id="newAgbSatz" class="mini" type="number" placeholder="€/h" value="60">
-      <button class="btn-primary" id="addAgb">+ Auftraggeber</button>
+    <div class="modal-actions">
+      <button class="discard" id="mgmtExport" hidden>Altbestand als JSON</button>
+      <button class="discard" id="mgmtReload">Neu laden</button>
+      <button class="discard" id="mgmtOpen">Im Auftragsbuch bearbeiten ↗</button>
+      <button class="save" id="mgmtClose">Fertig</button>
     </div>
-    <div class="modal-actions"><button class="save" id="mgmtClose">Fertig</button></div>
   </div>
 </div>
 
@@ -543,14 +562,143 @@ const LS_KEY="stempeluhr_entries_v2", M_KEY="stempeluhr_master_v1", B_KEY="stemp
   RUN_KEY="stempeluhr_run_v1", S_KEY="stempeluhr_settings_v1", BK_KEY="stempeluhr_backups_v1", WARN_KEY="stempeluhr_warn_dismiss";
 const R=132, C=2*Math.PI*R, $=id=>document.getElementById(id);
 
-const SEED_AGB=[{name:"MGT Stuttgart",satz:60},{name:"MGT Göttingen",satz:60},{name:"MGT Berlin",satz:60},
-  {name:"Monjas Hairdesign",satz:60},{name:"Kosmetikstudio Schaf",satz:60},{name:"Privat Steuern",satz:60}];
-const SEED_AUF=[{titel:"Buchhaltung",agb:"MGT Stuttgart"},{titel:"Löhne",agb:"MGT Stuttgart"},{titel:"Abschluss",agb:"MGT Stuttgart"},
-  {titel:"Buchhaltung",agb:"MGT Göttingen"},{titel:"Löhne",agb:"MGT Göttingen"},{titel:"Abschluss",agb:"MGT Göttingen"},
-  {titel:"Buchhaltung",agb:"MGT Berlin"},{titel:"Löhne",agb:"MGT Berlin"},{titel:"Abschluss",agb:"MGT Berlin"},
-  {titel:"Buchhaltung",agb:"Monjas Hairdesign"},{titel:"Buchhaltung",agb:"Kosmetikstudio Schaf"},{titel:"Löhne",agb:"Kosmetikstudio Schaf"},
-  {titel:"Abschluss",agb:"Kosmetikstudio Schaf"},{titel:"Sonja K.",agb:"Privat Steuern"},{titel:"Björn",agb:"Privat Steuern"},
-  {titel:"David H.",agb:"Privat Steuern"},{titel:"Stefan K.",agb:"Privat Steuern"},{titel:"Alisa",agb:"Privat Steuern"}];
+/* ════════════════════════════════════════════════════════════════
+   BRÜCKE ZUM AUFTRAGSBUCH
+   Auftraggeber und Aufträge führt das Auftragsbuch. Es liegt unter
+   derselben Herkunft (maikunverricht.github.io), teilt sich also
+   Speicher und Dateizugriff mit dieser Seite. Die Stempeluhr liest
+   von dort und schreibt nie zurück.
+
+   Zwei Wege, in dieser Reihenfolge:
+     1. die verknüpfte auftragsbuch.json — über den Handle, den das
+        Auftragsbuch in der gemeinsamen IndexedDB hinterlegt hat
+     2. die Lesekopie, die das Auftragsbuch im localStorage spiegelt
+
+   Buchungen merken sich zusätzlich die IDs. Wird im Auftragsbuch
+   umbenannt, ziehen die Namen in den Buchungen von selbst nach.
+   ════════════════════════════════════════════════════════════════ */
+const AB_URL="https://maikunverricht.github.io/Auftragsbuch/";
+const AB_LS="wb-auftragsbuch-data", AB_DB="wb-auftragsbuch";
+const AB_OFFEN=new Set(["geplant","aktiv","pausiert"]);
+let abHandle=null, abZugriff=false, abStand=null, gestartet=false;
+
+function abDb(){return new Promise((res,rej)=>{const r=indexedDB.open(AB_DB,1);
+  r.onupgradeneeded=()=>{try{r.result.createObjectStore("kv");}catch(e){}};
+  r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+async function abHandleHolen(){
+  if(!("showOpenFilePicker" in window))return null;
+  try{const db=await abDb();
+    if(!db.objectStoreNames.contains("kv"))return null;
+    return await new Promise((res,rej)=>{const t=db.transaction("kv","readonly").objectStore("kv").get("handle");
+      t.onsuccess=()=>res(t.result||null);t.onerror=()=>rej(t.error);});
+  }catch(e){return null;}
+}
+function abSpiegel(){try{const r=localStorage.getItem(AB_LS);return r?JSON.parse(r):null;}catch(e){return null;}}
+
+/* Rohbestand → das, was die Stempeluhr braucht. Der Satz eines Auftrags
+   sticht den des Auftraggebers — dieselbe Regel wie im Auftragsbuch. */
+function abFormen(roh,quelle){
+  const m={quelle:quelle,auftraggeber:[],auftraege:[]};
+  if(!roh||typeof roh!=="object")return m;
+  const zahl=v=>{const n=parseFloat(String(v).replace(",","."));return Number.isFinite(n)?n:null;};
+  m.auftraggeber=(Array.isArray(roh.auftraggeber)?roh.auftraggeber:[])
+    .filter(x=>x&&x.name).map(x=>({id:String(x.id||x.name),name:String(x.name),
+      satz:zahl(x.stundensatz),aktiv:x.aktiv!==false}));
+  const nachId={};m.auftraggeber.forEach(g=>nachId[g.id]=g);
+  m.auftraege=(Array.isArray(roh.auftraege)?roh.auftraege:[])
+    .filter(x=>x&&x.name&&nachId[String(x.auftraggeberId)])
+    .map(x=>{const g=nachId[String(x.auftraggeberId)],eigen=zahl(x.stundensatz),st=String(x.status||"geplant");
+      return{id:String(x.id||g.id+"|"+x.name),agbId:g.id,agb:g.name,titel:String(x.name),
+        projektnummer:String(x.projektnummer||""),status:st,offen:AB_OFFEN.has(st),
+        satz:eigen!=null?eigen:g.satz};});
+  if(!m.auftraggeber.length&&!m.auftraege.length)m.quelle="keine";
+  return m;
+}
+/* Der Bestand aus der Zeit vor dem Auftragsbuch — nur noch zum Lesen
+   und zum einmaligen Übertragen. */
+function abAltbestand(){
+  let alt=null;try{alt=JSON.parse(localStorage.getItem(M_KEY));}catch(e){}
+  if(!alt||!Array.isArray(alt.auftraggeber)||!alt.auftraggeber.length)return null;
+  return{app:"werkbank-auftragsbuch",version:1,
+    auftraggeber:alt.auftraggeber.map(g=>({id:"alt:"+g.name,name:g.name,stundensatz:g.satz,aktiv:true})),
+    auftraege:(alt.auftraege||[]).map(a=>({id:"alt:"+a.agb+"|"+a.titel,auftraggeberId:"alt:"+a.agb,name:a.titel,
+      status:a.status==="erledigt"?"abgeschlossen":(a.status==="in Arbeit"?"aktiv":"geplant")}))};
+}
+function loadMaster(){
+  const s=abSpiegel();
+  if(s){const m=abFormen(s,"browser");if(m.quelle!=="keine")return m;}
+  const alt=abAltbestand();
+  if(alt)return abFormen(alt,"lokal");
+  return{quelle:"keine",auftraggeber:[],auftraege:[]};
+}
+/* IDs einmalig über den Namen nachtragen — und Namen nachziehen,
+   wenn im Auftragsbuch umbenannt wurde. */
+function abNachziehen(){
+  let ch=false;
+  entries.forEach(e=>{
+    if(!e.agbId){
+      const g=master.auftraggeber.find(x=>x.name===e.auftraggeber);
+      if(g){e.agbId=g.id;ch=true;
+        const a=master.auftraege.find(x=>x.agbId===g.id&&x.titel===e.auftrag);
+        if(a)e.aufId=a.id;}
+      return;
+    }
+    const g=master.auftraggeber.find(x=>x.id===e.agbId);
+    if(g&&g.name!==e.auftraggeber){e.auftraggeber=g.name;ch=true;}
+    if(e.aufId){const a=master.auftraege.find(x=>x.id===e.aufId);
+      if(a&&a.titel!==e.auftrag){e.auftrag=a.titel;ch=true;}}
+  });
+  if(ch)save();
+}
+async function abLaden({nachfragen=false}={}){
+  if(!abHandle)abHandle=await abHandleHolen();
+  if(abHandle){
+    try{
+      let p=await abHandle.queryPermission({mode:"read"});
+      if(p!=="granted"&&nachfragen)p=await abHandle.requestPermission({mode:"read"});
+      abZugriff=(p==="granted");
+      if(abZugriff){
+        const txt=await (await abHandle.getFile()).text();
+        const m=abFormen(txt.trim()?JSON.parse(txt):null,"datei");
+        if(m.quelle!=="keine"){master=m;abFertig();return;}
+      }
+    }catch(e){abZugriff=false;}
+  }
+  master=loadMaster();abFertig();
+}
+function abFertig(){
+  abStand=new Date();abNachziehen();abChip();
+  if(gestartet){renderMgmt();render();}
+}
+function abChip(){
+  const c=$("abChip");if(!c)return;
+  const n=master.auftraggeber.length;
+  if(abHandle&&!abZugriff){c.className="pill warn";c.textContent="Auftragsbuch · tippen";
+    c.title="Eine Auftragsbuch-Datei ist verknüpft – zum Lesen freigeben.";return;}
+  if(master.quelle==="datei"){c.className="pill ok";c.textContent="Auftragsbuch · Datei";
+    c.title=n+" Auftraggeber aus der verknüpften Datei";return;}
+  if(master.quelle==="browser"){c.className="pill ok";c.textContent="Auftragsbuch";
+    c.title=n+" Auftraggeber aus dem Auftragsbuch dieses Browsers";return;}
+  if(master.quelle==="lokal"){c.className="pill warn";c.textContent="Altbestand";
+    c.title="Noch kein Auftragsbuch – es gilt der alte lokale Bestand.";return;}
+  c.className="pill";c.textContent="Kein Auftragsbuch";c.title="Auftraggeber im Auftragsbuch anlegen.";
+}
+/* Der Auftrag entscheidet über den Satz, sonst der Auftraggeber. */
+function auftragVon(agb,auf){return master.auftraege.find(x=>x.agb===agb&&x.titel===auf)||null;}
+function satzFuer(agb,auf){
+  const a=auftragVon(agb,auf);
+  if(a&&a.satz!=null)return a.satz;
+  const g=master.auftraggeber.find(x=>x.name===agb);
+  return g&&g.satz!=null?g.satz:60;}
+function idsFuer(agb,auf){
+  const g=master.auftraggeber.find(x=>x.name===agb),a=auftragVon(agb,auf);
+  return{agbId:g?g.id:null,aufId:a?a.id:null};}
+/* Zur Auswahl stehen nur aktive Auftraggeber. Eine alte Buchung auf einen
+   stillgelegten bleibt trotzdem les- und bearbeitbar. */
+function agbNamen(auch){
+  const n=master.auftraggeber.filter(g=>g.aktiv).map(g=>g.name);
+  if(auch&&!n.includes(auch))n.push(auch);
+  return n;}
 
 let master=loadMaster(), entries=load(), settings=loadSettings();
 let tickTimer=null,pendingDur=0,pendingStart=null,pendingEnd=null,editId=null;
@@ -562,13 +710,9 @@ const ring=$("ring"); ring.style.strokeDasharray=C; ring.style.strokeDashoffset=
 
 function load(){try{return JSON.parse(localStorage.getItem(LS_KEY))||[];}catch(e){return[];}}
 function save(){localStorage.setItem(LS_KEY,JSON.stringify(entries));}
-function loadMaster(){try{const m=JSON.parse(localStorage.getItem(M_KEY));if(m&&m.auftraggeber)return m;}catch(e){}
-  return{auftraggeber:JSON.parse(JSON.stringify(SEED_AGB)),auftraege:JSON.parse(JSON.stringify(SEED_AUF))};}
-function saveMaster(){localStorage.setItem(M_KEY,JSON.stringify(master));}
 function loadSettings(){try{const s=JSON.parse(localStorage.getItem(S_KEY));if(s)return Object.assign({rounding:0,hideErledigt:true,pdfHeader:"",pdfLogo:"",pdfSign:false},s);}catch(e){}
   return{rounding:0,hideErledigt:true,pdfHeader:"",pdfLogo:"",pdfSign:false};}
 function saveSettings(){localStorage.setItem(S_KEY,JSON.stringify(settings));}
-function satzFor(name){const a=master.auftraggeber.find(x=>x.name===name);return a?a.satz:60;}
 
 const nf2=new Intl.NumberFormat("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2});
 const eur=new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR",maximumFractionDigits:0});
@@ -600,8 +744,11 @@ $("restoreBtn").addEventListener("click",()=>$("restoreFile").click());
 $("restoreFile").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
   r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.entries)throw new Error("Kein gültiges Backup");
     if(!confirm("Backup laden und aktuelle Daten ersetzen?"))return;snapshot();
-    entries=d.entries;if(d.master)master=d.master;if(d.settings)settings=Object.assign(settings,d.settings);
-    save();saveMaster();saveSettings();applySettingsUI();render();alert("Backup wiederhergestellt.");}catch(err){alert("Fehler: "+err.message);}};
+    /* Nur Buchungen und Einstellungen. Auftraggeber und Aufträge stehen im
+       Auftragsbuch und werden von dort neu gelesen. */
+    entries=d.entries;if(d.settings)settings=Object.assign(settings,d.settings);
+    save();saveSettings();applySettingsUI();render();abLaden();
+    alert("Backup wiederhergestellt – Buchungen und Einstellungen. Die Stammdaten kommen aus dem Auftragsbuch.");}catch(err){alert("Fehler: "+err.message);}};
   r.readAsText(f);e.target.value="";});
 
 // ---- Warnbanner ----
@@ -632,11 +779,11 @@ $("pauseBtn").addEventListener("click",()=>clock.paused?resumeClock():pauseClock
 $("rounding").addEventListener("change",e=>{settings.rounding=parseInt(e.target.value,10)||0;saveSettings();});
 
 // ---- Auswahl-Helfer (erledigte ausblenden) ----
-function jobsFor(agb){return master.auftraege.filter(a=>a.agb===agb&&!(settings.hideErledigt&&a.status==="erledigt")).map(a=>a.titel);}
+function jobsFor(agb){return master.auftraege.filter(a=>a.agb===agb&&!(settings.hideErledigt&&!a.offen)).map(a=>a.titel);}
 
 // ---- Buchungs-Dialog ----
 function openBooking(){
-  const names=master.auftraggeber.map(a=>a.name);
+  const names=agbNamen();
   $("mAuftraggeber").innerHTML='<option value="" disabled selected>— wählen —</option>'+names.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join("");
   $("mAuftrag").innerHTML='<option value="" disabled selected>— zuerst Auftraggeber —</option>';$("mNotiz").value="";
   $("saveHint").textContent=(linkedHandle&&permGranted)?("Wird in "+esc(linkedName)+" gespeichert."):"Keine Excel verknüpft – Speicherung nur lokal.";
@@ -646,7 +793,7 @@ $("mAuftraggeber").addEventListener("change",e=>{const t=[...new Set(jobsFor(e.t
   $("mAuftrag").innerHTML='<option value="" disabled selected>— wählen —</option>'+t.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join("");});
 $("mSave").addEventListener("click",async()=>{const agb=$("mAuftraggeber").value,auf=$("mAuftrag").value;
   if(!agb){$("mAuftraggeber").focus();return;}snapshot();
-  entries.push({id:Date.now(),start:pendingStart,end:pendingEnd,dur:pendingDur,auftraggeber:agb,auftrag:auf||"Ohne Auftrag",notiz:$("mNotiz").value.trim(),satz:satzFor(agb)});
+  entries.push(Object.assign({id:Date.now(),start:pendingStart,end:pendingEnd,dur:pendingDur,auftraggeber:agb,auftrag:auf||"Ohne Auftrag",notiz:$("mNotiz").value.trim(),satz:satzFuer(agb,auf)},idsFuer(agb,auf)));
   save();$("overlay").classList.remove("open");render();await autoSaveExcel();});
 $("mDiscard").addEventListener("click",()=>$("overlay").classList.remove("open"));
 
@@ -667,7 +814,7 @@ function manTimes(ds,de,st,en){const p=ds.split("-").map(Number),q=(de||ds).spli
 $("manAgb").addEventListener("change",e=>manFillAuf(e.target.value));
 function openManual(entry){
   editId=entry?entry.id:null;$("manTitle").textContent=entry?"Buchung bearbeiten":"Buchung nachtragen";
-  const names=master.auftraggeber.map(a=>a.name);
+  const names=agbNamen(entry?entry.auftraggeber:null);
   if(entry){const s=dt(entry.start),en=dt(entry.end||entry.start+entry.dur*1000);
     $("manDatum").value=s.getFullYear()+"-"+two(s.getMonth()+1)+"-"+two(s.getDate());
     $("manDatumEnd").value=en.getFullYear()+"-"+two(en.getMonth()+1)+"-"+two(en.getDate());
@@ -686,62 +833,62 @@ $("manSave").addEventListener("click",async()=>{
   const r=manTimes(ds,de,st,en);
   if(overlaps(r.start,r.end,editId)&&!confirm("Diese Zeit überschneidet sich mit einer bestehenden Buchung. Trotzdem speichern?"))return;
   snapshot();
-  if(editId){const e=entries.find(x=>x.id===editId);if(e){e.start=r.start;e.end=r.end;e.dur=r.dur;e.auftraggeber=agb;e.auftrag=auf||"Ohne Auftrag";e.notiz=$("manNotiz").value.trim();e.satz=satzFor(agb);}}
-  else entries.push({id:Date.now(),start:r.start,end:r.end,dur:r.dur,auftraggeber:agb,auftrag:auf||"Ohne Auftrag",notiz:$("manNotiz").value.trim(),satz:satzFor(agb)});
+  if(editId){const e=entries.find(x=>x.id===editId);if(e){e.start=r.start;e.end=r.end;e.dur=r.dur;e.auftraggeber=agb;e.auftrag=auf||"Ohne Auftrag";e.notiz=$("manNotiz").value.trim();e.satz=satzFuer(agb,auf);Object.assign(e,idsFuer(agb,auf));}}
+  else entries.push(Object.assign({id:Date.now(),start:r.start,end:r.end,dur:r.dur,auftraggeber:agb,auftrag:auf||"Ohne Auftrag",notiz:$("manNotiz").value.trim(),satz:satzFuer(agb,auf)},idsFuer(agb,auf)));
   save();$("manualOverlay").classList.remove("open");render();await autoSaveExcel();});
 
 // ---- Stammdaten ----
 $("openMgmt").addEventListener("click",()=>{$("hideErledigt").checked=settings.hideErledigt;renderMgmt();$("mgmtOverlay").classList.add("open");});
 $("mgmtClose").addEventListener("click",async()=>{$("mgmtOverlay").classList.remove("open");await autoSaveExcel();});
 $("hideErledigt").addEventListener("change",e=>{settings.hideErledigt=e.target.checked;saveSettings();});
-const STATI=["offen","in Arbeit","erledigt"];
+function mgmtQuelle(){
+  const n=master.auftraggeber.length,k=master.auftraege.length;
+  const stand=abStand?" · gelesen "+two(abStand.getHours())+":"+two(abStand.getMinutes()):"";
+  if(master.quelle==="datei")return "Aus der verknüpften <b>auftragsbuch.json</b> – "+n+" Auftraggeber, "+k+" Aufträge"+stand+". Geändert wird im Auftragsbuch.";
+  if(master.quelle==="browser")return "Aus dem <b>Auftragsbuch</b> dieses Browsers – "+n+" Auftraggeber, "+k+" Aufträge"+stand+". Geändert wird im Auftragsbuch.";
+  if(master.quelle==="lokal")return "Noch kein Auftragsbuch gefunden. Es gilt der <b>alte lokale Bestand</b> – "+n+" Auftraggeber. Übertrage ihn einmal ins Auftragsbuch, dann führt nur noch eine Stelle die Stammdaten.";
+  return "Kein Auftragsbuch gefunden. Lege die Auftraggeber dort an – hier erscheinen sie dann von selbst.";
+}
 function renderMgmt(){
-  const list=$("mgmtList");
-  if(!master.auftraggeber.length){list.innerHTML='<div class="empty">Noch keine Auftraggeber. Unten anlegen.</div>';return;}
-  list.innerHTML=master.auftraggeber.map((g,gi)=>{
-    const jobs=master.auftraege.map((a,ai)=>({a,ai})).filter(o=>o.a.agb===g.name);
-    return '<div class="agb-card"><div class="agb-head">'+
-      '<input class="cell-in name" data-gi="'+gi+'" data-f="name" value="'+esc(g.name)+'">'+
-      '<input class="cell-in mini" data-gi="'+gi+'" data-f="satz" type="number" value="'+g.satz+'" title="Stundensatz €/h">'+
-      '<button class="icon-btn" data-copy="'+gi+'" title="Auftraggeber samt Aufträgen kopieren">&#10696;</button>'+
-      '<button class="icon-btn danger" data-delagb="'+gi+'" title="Auftraggeber löschen">&#10005;</button></div>'+
-      '<div class="agb-jobs">'+
-      (jobs.length?jobs.map(o=>'<div class="job-row"><input class="cell-in jtitel" data-ai="'+o.ai+'" data-f="titel" value="'+esc(o.a.titel)+'">'+
-        '<select class="cell-in jstatus" data-ai="'+o.ai+'" data-f="status">'+STATI.map(s=>'<option'+((o.a.status||"offen")===s?" selected":"")+'>'+s+'</option>').join("")+'</select>'+
-        '<button class="del" data-delauf="'+o.ai+'" title="Auftrag löschen">&#10005;</button></div>').join(""):'<div class="empty" style="padding:2px 0">Noch keine Aufträge.</div>')+
-      '<div class="job-row"><input class="cell-in newjob" data-gi="'+gi+'" placeholder="+ Auftrag hinzufügen"><button class="icon-btn" data-addjob="'+gi+'">+</button></div>'+
+  const list=$("mgmtList");if(!list)return;
+  const q=$("mgmtQuelleText");if(q)q.innerHTML=mgmtQuelle();
+  const ex=$("mgmtExport");if(ex)ex.hidden=(master.quelle!=="lokal");
+  if(!master.auftraggeber.length){
+    list.innerHTML='<div class="empty">Noch nichts da. Im Auftragsbuch anlegen – die Stempeluhr liest es von selbst.</div>';return;}
+  list.innerHTML=master.auftraggeber.map(g=>{
+    const alle=master.auftraege.filter(a=>a.agbId===g.id);
+    const zeig=alle.filter(a=>!(settings.hideErledigt&&!a.offen));
+    return '<div class="agb-card'+(g.aktiv?"":" ist-inaktiv")+'"><div class="agb-head">'+
+      '<span class="name">'+esc(g.name)+'</span>'+
+      (g.aktiv?"":'<span class="jstatus">inaktiv</span>')+
+      '<span class="satz">'+(g.satz!=null?eur2.format(g.satz)+"/h":"–")+'</span></div>'+
+      '<div class="agb-jobs">'+(zeig.length?zeig.map(a=>
+        '<div class="job-row"><span class="jtitel">'+esc(a.titel)+
+          (a.projektnummer?' <i>'+esc(a.projektnummer)+'</i>':"")+'</span>'+
+        '<span class="jstatus st-'+esc(a.status)+'">'+esc(a.status)+'</span>'+
+        '<span class="jsatz">'+(a.satz!=null?eur2.format(a.satz)+"/h":"–")+'</span></div>').join("")
+        :'<div class="empty" style="padding:2px 0">'+(alle.length?"Nur abgeschlossene Aufträge.":"Noch kein Auftrag.")+'</div>')+
       '</div></div>';
   }).join("");
-  list.querySelectorAll('.cell-in[data-gi][data-f]').forEach(inp=>inp.addEventListener("change",e=>{
-    const gi=+e.target.dataset.gi,f=e.target.dataset.f;
-    if(f==="name"){const old=master.auftraggeber[gi].name,nw=e.target.value.trim()||old;
-      if(nw!==old&&master.auftraggeber.some((x,i)=>i!==gi&&x.name===nw)){alert("Ein Auftraggeber mit diesem Namen existiert bereits.");renderMgmt();return;}
-      master.auftraggeber[gi].name=nw;master.auftraege.forEach(a=>{if(a.agb===old)a.agb=nw;});}
-    else master.auftraggeber[gi].satz=parseFloat(e.target.value)||0;
-    saveMaster();renderMgmt();render();}));
-  list.querySelectorAll('.cell-in[data-ai]').forEach(inp=>inp.addEventListener("change",e=>{
-    const ai=+e.target.dataset.ai,f=e.target.dataset.f;
-    if(f==="titel")master.auftraege[ai].titel=e.target.value.trim()||master.auftraege[ai].titel;
-    else master.auftraege[ai].status=e.target.value;saveMaster();}));
-  list.querySelectorAll("[data-copy]").forEach(b=>b.addEventListener("click",()=>copyClient(+b.dataset.copy)));
-  list.querySelectorAll("[data-delagb]").forEach(b=>b.addEventListener("click",()=>{const gi=+b.dataset.delagb,name=master.auftraggeber[gi].name;
-    if(!confirm('Auftraggeber "'+name+'" und seine Aufträge löschen? (Buchungen bleiben erhalten)'))return;
-    master.auftraggeber.splice(gi,1);master.auftraege=master.auftraege.filter(a=>a.agb!==name);saveMaster();renderMgmt();render();}));
-  list.querySelectorAll("[data-delauf]").forEach(b=>b.addEventListener("click",()=>{master.auftraege.splice(+b.dataset.delauf,1);saveMaster();renderMgmt();}));
-  const addJob=gi=>{const inp=list.querySelector('.newjob[data-gi="'+gi+'"]');const t=inp.value.trim();if(!t)return;
-    master.auftraege.push({titel:t,agb:master.auftraggeber[gi].name,status:"offen"});saveMaster();renderMgmt();};
-  list.querySelectorAll("[data-addjob]").forEach(b=>b.addEventListener("click",()=>addJob(+b.dataset.addjob)));
-  list.querySelectorAll(".newjob").forEach(inp=>inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addJob(+inp.dataset.gi);}}));
 }
-function copyClient(gi){const g=master.auftraggeber[gi];
-  let name=g.name+" (Kopie)",k=2;while(master.auftraggeber.some(x=>x.name===name)){name=g.name+" (Kopie "+k+")";k++;}
-  master.auftraggeber.splice(gi+1,0,{name,satz:g.satz});
-  master.auftraege.filter(a=>a.agb===g.name).forEach(a=>master.auftraege.push({titel:a.titel,agb:name,status:a.status||"offen"}));
-  saveMaster();renderMgmt();render();}
-$("addAgb").addEventListener("click",()=>{const n=$("newAgbName").value.trim();if(!n)return;
-  if(master.auftraggeber.some(a=>a.name===n)){alert("Auftraggeber existiert bereits.");return;}
-  master.auftraggeber.push({name:n,satz:parseFloat($("newAgbSatz").value)||0});$("newAgbName").value="";$("newAgbSatz").value="60";saveMaster();renderMgmt();render();});
-$("newAgbName").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("addAgb").click();}});
+$("mgmtReload").addEventListener("click",()=>abLaden({nachfragen:true}));
+$("mgmtOpen").addEventListener("click",()=>window.open(AB_URL,"_blank","noopener"));
+$("mgmtExport").addEventListener("click",()=>{
+  const d=abAltbestand();if(!d)return;
+  d.updated=new Date().toISOString();
+  const b=new Blob([JSON.stringify(d,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(b);
+  a.download="auftragsbuch-aus-stempeluhr.json";a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  alert("Datei gespeichert. Im Auftragsbuch über „Import“ einlesen – danach führt das Auftragsbuch die Stammdaten.");
+});
+$("abChip").addEventListener("click",async()=>{
+  if(abHandle&&!abZugriff){await abLaden({nachfragen:true});return;}
+  $("hideErledigt").checked=settings.hideErledigt;renderMgmt();$("mgmtOverlay").classList.add("open");
+});
+/* Speichert das Auftragsbuch in einem anderen Tab, kommt das hier an. */
+addEventListener("storage",e=>{if(e.key===AB_LS)abLaden();});
+addEventListener("visibilitychange",()=>{if(!document.hidden&&gestartet)abLaden();});
 
 // ---- Auswertung ----
 function groupSum(key){const m={};entries.forEach(e=>{if(!m[e[key]])m[e[key]]={sec:0,eur:0};m[e[key]].sec+=e.dur;m[e[key]].eur+=hours(e.dur)*(e.satz||60);});return Object.entries(m).sort((a,b)=>b[1].sec-a[1].sec);}
@@ -820,8 +967,11 @@ function monatRows(){const m={};entries.forEach(e=>{const d=dt(e.start),k=d.getF
   return Object.values(m).sort((a,b)=>a.ord-b.ord).map(r=>({Monat:r.Monat,Auftraggeber:r.Auftraggeber,Stunden:Math.round(hours(r.sec)*100)/100,"Stundensatz (EUR/h)":r.satz,"Betrag (EUR)":Math.round(hours(r.sec)*r.satz*100)/100}));}
 function buildWorkbook(){const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(zeitenRows().length?zeitenRows():[{Datum:"",Start:"",Ende:"",Stunden:"",Auftraggeber:"",Auftrag:"",Notiz:""}]),"Zeiten");
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(master.auftraggeber.map(a=>({Name:a.name,"Stundensatz (EUR/h)":a.satz}))),"Auftraggeber");
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(master.auftraege.map(a=>({"Auftrags-ID":a.id||"",Titel:a.titel,Auftraggeber:a.agb,Status:a.status||"offen"}))),"Aufträge");
+  const agbR=master.auftraggeber.map(a=>({Name:a.name,"Stundensatz (EUR/h)":a.satz!=null?a.satz:""}));
+  const aufR=master.auftraege.map(a=>({"Auftrags-ID":a.id||"",Titel:a.titel,Auftraggeber:a.agb,
+    Status:a.status||"",Projektnummer:a.projektnummer||"","Stundensatz (EUR/h)":a.satz!=null?a.satz:""}));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(agbR.length?agbR:[{Name:"","Stundensatz (EUR/h)":""}]),"Auftraggeber");
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(aufR.length?aufR:[{"Auftrags-ID":"",Titel:"",Auftraggeber:"",Status:"",Projektnummer:"","Stundensatz (EUR/h)":""}]),"Aufträge");
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(monatRows().length?monatRows():[{Monat:"",Auftraggeber:"",Stunden:"","Stundensatz (EUR/h)":"","Betrag (EUR)":""}]),"Monatsübersicht");
   return wb;}
 function parseDE(datum,zeit){if(datum==null||datum==="")return null;const ds=String(datum).trim();
@@ -831,15 +981,22 @@ function parseDE(datum,zeit){if(datum==null||datum==="")return null;const ds=Str
 function getSheet(wb,re){const n=wb.SheetNames.find(s=>re.test(s));return n?XLSX.utils.sheet_to_json(wb.Sheets[n],{raw:false,defval:""}):null;}
 function applyWorkbook(wb){
   const agb=getSheet(wb,/Auftraggeber/i),auf=getSheet(wb,/Auftr[aä]ge/i),zeit=getSheet(wb,/Zeiten/i);
-  if(agb&&agb.length)master.auftraggeber=agb.filter(r=>r.Name).map(r=>({name:String(r.Name).trim(),satz:parseFloat(String(r["Stundensatz (EUR/h)"]).replace(",","."))||0}));
-  if(auf&&auf.length)master.auftraege=auf.filter(r=>r.Titel).map(r=>({titel:String(r.Titel).trim(),agb:String(r.Auftraggeber||"").trim(),status:r.Status||"offen"}));
-  saveMaster();
+  /* Stammdaten führt das Auftragsbuch. Nur wenn keines erreichbar ist,
+     zieht die Stempeluhr sie noch aus der Excel. */
+  if((master.quelle==="keine"||master.quelle==="lokal")&&((agb&&agb.length)||(auf&&auf.length))){
+    const kid=n=>"xls:"+String(n||"").trim();
+    master=abFormen({auftraggeber:(agb||[]).filter(r=>r.Name).map(r=>({id:kid(r.Name),name:String(r.Name).trim(),
+        stundensatz:r["Stundensatz (EUR/h)"],aktiv:true})),
+      auftraege:(auf||[]).filter(r=>r.Titel).map(r=>({id:kid(r.Auftraggeber)+"|"+String(r.Titel).trim(),
+        auftraggeberId:kid(r.Auftraggeber),name:String(r.Titel).trim(),
+        status:/erledigt|abgeschlossen/i.test(String(r.Status||""))?"abgeschlossen":"aktiv"}))},"lokal");
+  }
   if(zeit){entries=zeit.filter(r=>r.Auftraggeber||r.Auftrag||r.Stunden).map(r=>{
     const st=parseDE(r.Datum,r.Start);let en=parseDE(r.Datum,r.Ende);
     const std=parseFloat(String(r.Stunden).replace(",","."))||0;let dur;
     if(st&&en){if(en<st)en+=86400000;dur=Math.round((en-st)/1000);}else dur=Math.round(std*3600);
     const s=st||Date.now();return{id:s+Math.floor(Math.random()*1000),start:s,end:en||(s+dur*1000),dur,
-      auftraggeber:r.Auftraggeber||"Ohne Auftraggeber",auftrag:r.Auftrag||"Ohne Auftrag",notiz:r.Notiz||"",satz:satzFor(r.Auftraggeber)};});
+      auftraggeber:r.Auftraggeber||"Ohne Auftraggeber",auftrag:r.Auftrag||"Ohne Auftrag",notiz:r.Notiz||"",satz:satzFuer(r.Auftraggeber,r.Auftrag)};});
     save();}
   render();
 }
@@ -965,7 +1122,9 @@ applySettingsUI();autoSnapshot();
   if(clock.paused){uiPaused();tick();}else{tickTimer=setInterval(tick,1000);uiRunning();tick();}}}catch(e){}}})();
 (async()=>{try{const h=await idbGet("excelHandle");if(h){linkedHandle=h;linkedName=h.name;
   const p=h.queryPermission?await h.queryPermission({mode:"readwrite"}):"prompt";permGranted=(p==="granted");}}catch(e){}updateLinkStatus();})();
-render();updateLinkStatus();
+render();updateLinkStatus();abChip();
+gestartet=true;
+abLaden();
 </script>
 <script>
 /* ----------------------------------------------------------------
