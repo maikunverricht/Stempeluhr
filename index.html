@@ -1830,8 +1830,23 @@ function zeitenSpiegeln(){
     });
     const l=(typeof clock!=="undefined"&&clock&&clock.running)
       ?{aktiv:true,pausiert:!!clock.paused,seit:clock.bookingStart||null}:{aktiv:false};
+    /* Was noch auf keiner Rechnung steht. Gelesen wird die Karte des
+       Rechnungsbuchs; fehlt sie, bleibt das Feld weg – dann weiß niemand
+       etwas, und niemand behauptet etwas. */
+    let offen=null;
+    try{
+      const st=rbStand();
+      if(st){
+        let osec=0,oeur=0,on=0;
+        entries.forEach(e=>{
+          if(buchungsSchluessel(e).some(x=>st.karte[x]))return;
+          osec+=e.dur;oeur+=hours(e.dur)*(e.satz||60);on++;
+        });
+        offen={sec:osec,eur:oeur,buchungen:on};
+      }
+    }catch(e){}
     const stand={app:"werkbank-stempeluhr",version:1,stand:new Date().toISOString(),
-      gesamt:{sec:sec,eur:wert,buchungen:entries.length},
+      gesamt:{sec:sec,eur:wert,buchungen:entries.length},offen:offen,
       jeAuftrag:jeAuftrag,jeAuftraggeber:jeAuftraggeber,laufend:l};
     WB.schreiben(WB_ZEIT_LS,stand);
     WB.melden("zeiten",{stand:stand.stand,laufend:l.aktiv});
