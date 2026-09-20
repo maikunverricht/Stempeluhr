@@ -1840,7 +1840,14 @@ function zeitenSpiegeln(){
         let osec=0,oeur=0,on=0;
         entries.forEach(e=>{
           if(buchungsSchluessel(e).some(x=>st.karte[x]))return;
-          osec+=e.dur;oeur+=hours(e.dur)*(e.satz||60);on++;
+          const w=hours(e.dur)*(e.satz||60);
+          osec+=e.dur;oeur+=w;on++;
+          /* Auch je Auftrag – das Auftragsbuch muss wissen, ob seine
+             Bilanz vollständig ist oder noch Stunden unterwegs sind. */
+          if(e.aufId&&jeAuftrag[e.aufId]){
+            const z=jeAuftrag[e.aufId];
+            z.offenSec=(z.offenSec||0)+e.dur;z.offenEur=(z.offenEur||0)+w;
+          }
         });
         offen={sec:osec,eur:oeur,buchungen:on};
       }
