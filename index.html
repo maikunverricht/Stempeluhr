@@ -451,9 +451,6 @@ html[data-theme="light"]{
   .bg i{filter:blur(38px)}
 }
 
-.head-top .mark{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;margin:0 0 12px;color:var(--txt,var(--text))}
-.head-top .mark svg{width:100%;height:100%;display:block;overflow:visible}
-
 /* ═══════════════════════════════════════════════════════════════
    Stoppuhr — überarbeitet 19.09.2026
    Der Knopf war eine glänzende türkise Kugel: ein Materialeffekt, den
@@ -502,23 +499,65 @@ html[data-theme="light"]{
 @media (prefers-reduced-motion:reduce){
   .btn-main,.btn-main:hover,.btn-main:active{transition:none;transform:none}
 }
+
+/* ═══ Rahmen wie in den übrigen Werkzeugen ═══ */
+.mark{display:inline-flex;align-items:center;justify-content:center;width:21px;height:21px;
+  flex:none;color:var(--text)}
+.mark svg{width:100%;height:100%;display:block;overflow:visible}
+.nav{position:fixed;top:0;left:0;right:0;z-index:40;padding:calc(12px + env(safe-area-inset-top)) 22px 0}
+.nav-in{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:12px;height:52px;
+  padding:0 8px 0 18px;border-radius:100px;border:1px solid var(--glass-edge);background:var(--glass);
+  box-shadow:var(--shadow);-webkit-backdrop-filter:blur(15px) saturate(1.3);backdrop-filter:blur(15px) saturate(1.3)}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text);
+  font-weight:500;letter-spacing:-.01em;white-space:nowrap;min-width:0;overflow:hidden}
+.brand b{font-weight:800;font-variation-settings:'wdth' 112}
+.nav-r{margin-left:auto;display:flex;align-items:center;gap:8px;flex:none}
+.nav .pill{height:36px}
+.nav .icon-btn{width:36px;padding:0;justify-content:center}
+.nav .icon-btn svg{width:17px;height:17px}
+body{padding-top:86px}
+footer.site{position:relative;max-width:1180px;margin:0 auto;
+  padding:24px 22px calc(36px + env(safe-area-inset-bottom));
+  display:flex;flex-wrap:wrap;gap:10px 22px;justify-content:space-between;
+  border-top:1px solid var(--line);font-family:var(--mono);font-size:12px;color:var(--text-3)}
+footer.site a{text-decoration:none;color:inherit}
+footer.site a:hover{color:var(--text)}
+footer.site .f-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+footer.site .pill.sm{height:30px;padding:0 11px;font-size:13px;font-family:var(--display)}
+#dlgSrc .sheet{border:1px solid var(--glass-edge);border-radius:20px;background:var(--surface);
+  box-shadow:var(--shadow-lg);max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
+#dlgSrc{border:0;padding:0;background:transparent;max-width:min(640px,94vw);width:100%;color:var(--text)}
+#dlgSrc::backdrop{background:color-mix(in srgb,#04070B 72%,transparent)}
+#dlgSrc header{display:flex;align-items:center;gap:12px;padding:17px 20px;border-bottom:1px solid var(--line)}
+#dlgSrc header h3{margin:0;font-size:19px;font-weight:700}
+#dlgSrc .body{padding:20px;overflow:auto;display:grid;gap:10px}
+#dlgSrc .body .reihe{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+#dlgSrc footer{display:flex;padding:15px 20px;border-top:1px solid var(--line)}
+@media (max-width:760px){ .nav{padding-left:16px;padding-right:16px} body{padding-top:80px}
+  footer.site{padding-left:16px;padding-right:16px} }
 </style>
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='8'%20fill='%2306090E'/%3E%3Cg%20transform='translate%2816%2016%29%20scale%280.19%29%20translate%28-60%20-56%29'%3E%3Cpath%20d='M26%2C16%20V62%20A34%2C34%200%200%200%2094%2C62%20V16'%20fill='none'%20stroke='%23EDF0F3'%20stroke-width='22'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3Ccircle%20cx='60'%20cy='64'%20r='18.5'%20fill='%23F2B33D'/%3E%3C/g%3E%3C/svg%3E">
 </head>
 <body>
 <div class="bg" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span></div>
 <div class="grain" aria-hidden="true"></div>
-<div class="topright">
-  <button class="theme" id="themeBtn" type="button" aria-pressed="false" aria-label="Helles Aussehen einschalten">
+
+<header class="nav">
+  <div class="nav-in">
+    <a class="brand" title="Zum Cockpit" href="https://maikunverricht.github.io/Der-Werkzeugkasten/"><span class="mark" aria-hidden="true"><svg viewBox="15 5 90 102"><path d="M26,16 V62 A34,34 0 0 0 94,62 V16" fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/><circle cx="60" cy="64" r="18.5" fill="var(--amber,#F2B33D)"/></svg></span><span class="hide-sm">Werkbank&nbsp;</span><b>Stempeluhr</b></a>
+    <div class="nav-r">
+      <button class="ghost" id="srcChip" type="button" title="Datenablage">Datenablage</button>
+      <button class="pill icon-btn theme" id="themeBtn" type="button" aria-pressed="false" aria-label="Helles Aussehen einschalten">
     <svg class="ic-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.3M12 19.1v2.3M2.6 12h2.3M19.1 12h2.3M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4L17 7M7 17l-1.6 1.6"/></svg>
     <svg class="ic-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.3A8.6 8.6 0 0 1 9.7 3.5a8.6 8.6 0 1 0 10.8 10.8z"/></svg>
   </button>
-</div>
+    </div>
+  </div>
+</header>
 <header>
   <div class="head-top">
     <div>
-      <span class="mark" aria-hidden="true"><svg viewBox="15 5 90 102"><path d="M26,16 V62 A34,34 0 0 0 94,62 V16" fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/><circle cx="60" cy="64" r="18.5" fill="var(--amber,#F2B33D)"/></svg></span>
-        <div class="eyebrow">Werkbank Unverricht</div>
+      <div class="eyebrow">Werkbank Unverricht</div>
       <h1>Stempel<em>uhr</em></h1>
       <p>Start/Pause/Stopp · Zuordnung nach dem Stoppen · Excel als Speicher</p>
     </div>
@@ -527,18 +566,7 @@ html[data-theme="light"]{
       <button class="ghost" id="openMgmt">&#9881; Stammdaten</button>
     </div>
   </div>
-  <div class="excelbar">
-    <span class="pill warn" id="linkStatus">Keine Excel verknüpft</span>
-    <span class="grow"></span>
-    <button class="btn-primary" id="linkExcel">Excel verknüpfen</button>
-    <button class="ghost" id="importExcel">Importieren</button>
-    <button class="ghost" id="saveExcel">In Excel speichern</button>
-    <button class="ghost" id="downloadExcel">Download .xlsx</button>
-    <button class="ghost" id="backupBtn">Backup &#8595;</button>
-    <button class="ghost" id="restoreBtn">Wiederherstellen</button>
-    <input type="file" id="importFile" accept=".xlsx,.xls" style="display:none">
-    <input type="file" id="restoreFile" accept=".json" style="display:none">
-  </div>
+  
 </header>
 <div class="warnbanner" id="warnBanner">
   <span>&#9888; Keine Excel verknüpft – deine Daten liegen nur in diesem Browser. Verknüpfe eine Excel oder lade ein Backup, um Datenverlust zu vermeiden.</span>
@@ -570,10 +598,10 @@ html[data-theme="light"]{
 
   <div class="dash">
     <div class="cards">
+      <div class="stat"><div class="k">Heute</div><div class="v" id="s-today">0,00</div></div>
+      <div class="stat"><div class="k">Nicht abgerechnet</div><div class="v eur" id="s-open">–</div></div>
       <div class="stat"><div class="k">Gesamtstunden</div><div class="v" id="s-total">0,00</div></div>
       <div class="stat"><div class="k">Betrag</div><div class="v eur" id="s-eur">0 &euro;</div></div>
-      <div class="stat"><div class="k">Buchungen</div><div class="v" id="s-count">0</div></div>
-      <div class="stat"><div class="k">Heute</div><div class="v" id="s-today">0,00</div></div>
     </div>
     <div class="grid2">
       <div class="panel"><h2>Stunden pro Auftraggeber</h2><div id="byAuftraggeber"></div></div>
@@ -583,7 +611,7 @@ html[data-theme="light"]{
       <div class="panel"><h2>Diese Woche</h2><div id="weekView"></div></div>
       <div class="panel"><h2>Jahr <select class="ghost ctl" id="yearSel" style="padding:3px 6px"></select></h2><div id="yearView"></div></div>
     </div>
-    <div class="panel"><h2 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Monatsübersicht &amp; Rechnungen<span class="pill" id="invSummary" style="font-weight:500"></span><label style="margin-left:auto;font-size:12px;font-weight:500;display:flex;align-items:center;gap:6px;white-space:nowrap"><input type="checkbox" id="onlyOpenInv" style="width:auto">nur offene Rechnungen</label></h2><div id="monatsuebersicht"></div></div>
+    <div class="panel"><h2 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Monatsübersicht <a href="https://maikunverricht.github.io/Rechnungsbuch/" class="pill" style="font-weight:500;text-decoration:none">Rechnungsbuch ↗</a><span class="pill" id="invSummary" style="font-weight:500"></span><label style="margin-left:auto;font-size:12px;font-weight:500;display:flex;align-items:center;gap:6px;white-space:nowrap"><input type="checkbox" id="onlyOpenInv" style="width:auto">nur nicht abgerechnete</label></h2><div id="monatsuebersicht"></div></div>
     <div class="panel">
       <div class="toolbar">
         <h2 style="margin:0;flex:1">Buchungen</h2>
@@ -683,6 +711,16 @@ html[data-theme="light"]{
 
 <div class="toast" id="toast"><span id="toastMsg"></span><button id="toastBtn">Rückgängig</button></div>
 
+<dialog id="dlgSrc"><div class="sheet">
+  <header><h3>Datenablage</h3><button class="ghost" type="button" data-src-close style="margin-left:auto">✕</button></header>
+  <div class="body">
+    <div class="reihe"><span class="pill warn" id="linkStatus">Keine Excel verknüpft</span></div>
+    <div class="reihe"><button class="btn-primary" id="linkExcel">Excel verknüpfen</button><button class="ghost" id="importExcel">Importieren</button><button class="ghost" id="saveExcel">In Excel speichern</button><button class="ghost" id="downloadExcel">Download .xlsx</button><button class="ghost" id="backupBtn">Backup &#8595;</button><button class="ghost" id="restoreBtn">Wiederherstellen</button></div>
+    <input type="file" id="importFile" accept=".xlsx,.xls" style="display:none"><input type="file" id="restoreFile" accept=".json" style="display:none">
+    <p style="margin:6px 0 0;color:var(--text-2);font-size:14px;line-height:1.5">Ohne verknüpfte Excel liegen die Buchungen nur in diesem Browser. Verknüpfen geht in Chrome und Edge am Rechner; sonst über Backup und Wiederherstellen.</p>
+  </div>
+  <footer><button class="ghost" type="button" data-src-close style="margin-left:auto">Schließen</button></footer>
+</div></dialog>
 <!-- ══════════════════════════════════════════════════════════════
      LIZENZBLOCK  (lizenz.js + lizenz-tor.js + Konfiguration)
      Prüfschlüssel der Lizenzstelle ist eingetragen.
@@ -1239,13 +1277,23 @@ html[data-theme="light"]{
   function fussknopf() {
     if (!cfg.fuss) return;
     var f = document.querySelector(cfg.fuss);
-    if (!f) return;
+    if (!f) {
+      /* Manche Werkzeuge rufen start() beim Parsen auf – dann steht die
+         Fußzeile noch nicht. Einmal nachfassen, sobald sie da ist. */
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', fussknopf, { once: true });
+      }
+      return;
+    }
     var b = document.createElement('button');
     b.type = 'button';
     b.className = cfg.fussKlasse || 'pill sm';
     b.textContent = lage && lage.status === 'frei' ? 'Lizenz' : 'Freischalten';
     b.addEventListener('click', dialogAuf);
-    f.insertBefore(b, f.firstChild);
+    /* Vor den letzten Eintrag – der ist in allen Werkzeugen der Verweis
+       nach draußen, und davor gehört der Lizenzknopf hin. */
+    var letzter = f.lastElementChild;
+    if (letzter) f.insertBefore(b, letzter); else f.appendChild(b);
   }
 
   /* ── Tor ───────────────────────────────────────────────── */
@@ -1340,7 +1388,7 @@ WBTor({
     "Stundennachweis als PDF und CSV"
   ],
   "nach": "header",
-  "fuss": ".head-actions",
+  "fuss": "footer.site .f-r",
   "eigen": [
     "stempeluhr_entries_v2",
     "stempeluhr_master_v1",
@@ -1502,7 +1550,28 @@ WBTor({
         "notiz": "Lastenheft überarbeitet",
         "satz": 110
       }
-    ]
+    ],
+    "wb-rechnungsbuch-data": {
+      "app": "werkbank-rechnungsbuch",
+      "version": 1,
+      "updated": "2026-09-19T10:00:00.000Z",
+      "einstellungen": {},
+      "abgerechnet": {
+        "a1|2026-09-02T06:30|3.75|Fehlerpfade gesichtet": "r1",
+        "a1|2026-09-04T07:00|7.50|Diagnosekonzept ausgearbeitet": "r1",
+        "a1|2026-09-09T11:00|4.75|Abstimmung mit Steuergeräteteam": "r1",
+        "a1|2026-09-11T06:00|3.50|Diagnosekonzept ausgearbeitet": "r1"
+      },
+      "rechnungen": [
+        {
+          "id": "r1",
+          "nummer": "RG-2026-014",
+          "datum": "2026-09-19",
+          "positionen": [],
+          "zahlungen": []
+        }
+      ]
+    }
   },
   "fussKlasse": "ghost"
 });
@@ -1957,34 +2026,110 @@ function renderBars(el,data,showEur){if(!data.length){el.innerHTML='<div class="
   el.innerHTML=data.map(([name,o])=>'<div class="row"><span class="lbl" style="min-width:90px">'+esc(name)+'</span>'+
     '<div class="bar"><span style="width:'+(max?Math.round(o.sec/max*100):0)+'%"></span></div>'+
     '<span class="val">'+nf2.format(hours(o.sec))+' h'+(showEur?' <small>· '+eur.format(o.eur)+'</small>':'')+'</span></div>').join("");}
+
+/* ═══════ Rechnungen führt das Rechnungsbuch ═══════
+   Bis zum 20.09.2026 hatte die Stempeluhr eine eigene Rechnungsspur:
+   Häkchen „gestellt", Nummer, Datum – ein zweiter Bestand neben dem
+   Rechnungsbuch, der von ihm nichts wusste. Zwei Wahrheiten über
+   denselben Sachverhalt. Jetzt wird nur noch gelesen: was abgerechnet
+   ist, weiß das Rechnungsbuch; hier steht es daneben, mehr nicht.
+   Geschrieben wird in dessen Bestand selbstverständlich nichts. */
+const RB_LS="wb-rechnungsbuch-data";
+const RB_URL="https://maikunverricht.github.io/Rechnungsbuch/";
+function rbLesen(){try{const r=localStorage.getItem(RB_LS);return r?JSON.parse(r):null;}catch(e){return null;}}
+/* Derselbe Schlüssel, den das Rechnungsbuch je Buchung bildet:
+   aufId | Zeitpunkt auf die Minute | Stunden | Tätigkeit. Es leitet die
+   Stunden aus Start und Ende ab; wo kein Ende steht, aus der Dauer —
+   darum beide Kandidaten. */
+function buchungsSchluessel(e){
+  const iso=new Date(e.start).toISOString().slice(0,16);
+  const notiz=String(e.notiz||"").slice(0,40), auf=e.aufId||"-", ks=[];
+  if(e.end>e.start) ks.push([auf,iso,((e.end-e.start)/3600000).toFixed(2),notiz].join("|"));
+  ks.push([auf,iso,(e.dur/3600).toFixed(2),notiz].join("|"));
+  return ks;
+}
+function rbStand(){
+  const d=rbLesen();
+  if(!d||!d.abgerechnet||typeof d.abgerechnet!=="object") return null;
+  const nummer={}; (d.rechnungen||[]).forEach(r=>{nummer[r.id]=r.nummer||"Entwurf";});
+  return {karte:d.abgerechnet,nummer:nummer};
+}
+
 function monatAgg(){const m={};entries.forEach(e=>{const d=dt(e.start),ym=d.getFullYear()+"-"+two(d.getMonth()+1),k=ym+"|"+e.auftraggeber;
   if(!m[k])m[k]={key:k,ym:ym,monat:d.toLocaleDateString("de-DE",{month:"long",year:"numeric"}),agb:e.auftraggeber,sec:0,satz:e.satz||60,ord:d.getFullYear()*100+d.getMonth()};m[k].sec+=e.dur;});
   return Object.values(m).sort((a,b)=>b.ord-a.ord||a.agb.localeCompare(b.agb));}
-function renderMonat(){let rows=monatAgg();
-  const off=rows.filter(r=>!invFor(r.key).gestellt);
-  const offEur=off.reduce((s,r)=>s+hours(r.sec)*r.satz,0);
+function renderMonat(){
+  const st=rbStand();
+  let rows=monatAgg().map(r=>{
+    const eig=entries.filter(e=>{const d=dt(e.start);
+      return (d.getFullYear()+"-"+two(d.getMonth()+1))===r.ym && e.auftraggeber===r.agb;});
+    let ab=0, offEurRow=0; const nummern=new Set();
+    eig.forEach(e=>{
+      const k=st?buchungsSchluessel(e).find(x=>st.karte[x]):null;
+      if(k){ab++; nummern.add(st.nummer[st.karte[k]]||"Entwurf");}
+      else offEurRow+=hours(e.dur)*(e.satz||r.satz);
+    });
+    return Object.assign({},r,{anz:eig.length,ab:ab,offEur:offEurRow,nummern:[...nummern]});
+  });
+
+  /* Offen ist, was Buchung für Buchung fehlt – nicht der ganze Monat,
+     sobald eine einzige Buchung noch nicht auf einer Rechnung steht. */
+  const offBuch=rows.reduce((s,r)=>s+(r.anz-r.ab),0);
+  const offEur=rows.reduce((s,r)=>s+r.offEur,0);
   const sum=$("invSummary");
-  if(sum){if(!rows.length){sum.textContent="";sum.className="pill";}
-    else if(off.length){sum.textContent=off.length+" offen \u00b7 "+eur.format(offEur);sum.className="pill warn";}
-    else{sum.textContent="alles abgerechnet";sum.className="pill ok";}}
-  if(settings.onlyOpenInv)rows=rows.filter(r=>!invFor(r.key).gestellt);
-  if(!rows.length){$("monatsuebersicht").innerHTML='<div class="empty">'+(entries.length?"Keine offenen Rechnungen \u2013 alles abgerechnet.":"Noch keine Daten.")+'</div>';return;}
-  $("monatsuebersicht").innerHTML='<table><thead><tr><th>Monat</th><th>Auftraggeber</th><th class="num">Stunden</th><th class="num">Satz</th><th class="num">Betrag</th><th style="text-align:center">Rechnung<br>gestellt</th><th>Rechnungs-Nr.</th><th>Rechnungsdatum</th></tr></thead><tbody>'+
-    rows.map(r=>{const iv=invFor(r.key);
-      return '<tr'+(iv.gestellt?' style="opacity:.7"':'')+'><td>'+esc(r.monat)+'</td><td>'+esc(r.agb)+'</td>'+
-      '<td class="num">'+fmtClock(r.sec)+' <small style="color:var(--muted)">('+nf2.format(hours(r.sec))+')</small></td>'+
-      '<td class="num">'+eur.format(r.satz)+'</td><td class="num">'+eur2.format(hours(r.sec)*r.satz)+'</td>'+
-      '<td style="text-align:center"><input type="checkbox" data-inv="'+esc(r.key)+'"'+(iv.gestellt?" checked":"")+' style="width:auto;cursor:pointer"></td>'+
-      '<td><input class="cell-in" data-invnr="'+esc(r.key)+'" value="'+esc(iv.nr)+'" placeholder="z. B. 2026-014" style="width:120px"></td>'+
-      '<td><input type="date" class="cell-in" data-invdat="'+esc(r.key)+'" value="'+esc(iv.datum)+'" style="width:145px"></td></tr>';}).join("")+
-    '</tbody></table>';
-  $("monatsuebersicht").querySelectorAll("[data-inv]").forEach(cb=>cb.addEventListener("change",async()=>{
-    const k=cb.dataset.inv,g=cb.checked,cur=invFor(k);
-    await setInv(k,{gestellt:g,datum:(g&&!cur.datum)?todayISO():cur.datum},true);}));
-  $("monatsuebersicht").querySelectorAll("[data-invnr]").forEach(inp=>inp.addEventListener("change",async()=>{
-    await setInv(inp.dataset.invnr,{nr:inp.value.trim()},false);}));
-  $("monatsuebersicht").querySelectorAll("[data-invdat]").forEach(inp=>inp.addEventListener("change",async()=>{
-    await setInv(inp.dataset.invdat,{datum:inp.value},false);}));}
+  if(sum){
+    if(!st){sum.textContent="kein Rechnungsbuch gefunden";sum.className="pill";}
+    else if(!rows.length){sum.textContent="";sum.className="pill";}
+    else if(offBuch){sum.textContent=offBuch+(offBuch===1?" Buchung offen · ":" Buchungen offen · ")+eur.format(offEur);sum.className="pill warn";}
+    else{sum.textContent="alles abgerechnet";sum.className="pill ok";}
+  }
+  const kachel=$("s-open");
+  if(kachel) kachel.textContent = st ? eur.format(offEur) : "–";
+  if(settings.onlyOpenInv)rows=rows.filter(r=>r.ab<r.anz);
+
+  const alt=Object.keys(rechnungen).length;
+  const hinweis=alt?'<div class="empty" style="text-align:left;margin-top:10px">'+
+    'Alter Rechnungsstand aus der Zeit vor dem Rechnungsbuch: '+alt+
+    (alt===1?' Eintrag':' Einträge')+'. Er wird nicht mehr gepflegt. '+
+    '<button class="ghost" type="button" id="invAlt" style="margin-left:6px">Als JSON sichern</button></div>':'';
+
+  if(!rows.length){
+    $("monatsuebersicht").innerHTML='<div class="empty">'+
+      (entries.length?"Alles abgerechnet.":"Noch keine Daten.")+'</div>'+hinweis;
+    altVerdrahten(); return;
+  }
+
+  $("monatsuebersicht").innerHTML='<table><thead><tr><th>Monat</th><th>Auftraggeber</th>'+
+    '<th class="num">Stunden</th><th class="num">Satz</th><th class="num">Betrag</th>'+
+    '<th>Abgerechnet</th></tr></thead><tbody>'+
+    rows.map(r=>{
+      let zelle;
+      if(!st) zelle='<span style="color:var(--muted-2)" title="Auf diesem Gerät wurde kein Rechnungsbuch gefunden.">–</span>';
+      else if(!r.ab) zelle='<span class="pill warn">offen</span>';
+      else if(r.ab<r.anz) zelle='<span class="pill warn">'+r.ab+' von '+r.anz+' Buchungen</span>'+
+        ' <small style="color:var(--muted)">'+eur.format(r.offEur)+' offen</small>';
+      else zelle='<span class="pill ok">abgerechnet</span>'+
+        (r.nummern.length?' <small style="color:var(--muted)">'+esc(r.nummern.join(", "))+'</small>':'');
+      return '<tr'+(st&&r.ab===r.anz?' style="opacity:.7"':'')+'><td>'+esc(r.monat)+'</td><td>'+esc(r.agb)+'</td>'+
+        '<td class="num">'+fmtClock(r.sec)+' <small style="color:var(--muted)">('+nf2.format(hours(r.sec))+')</small></td>'+
+        '<td class="num">'+eur.format(r.satz)+'</td><td class="num">'+eur2.format(hours(r.sec)*r.satz)+'</td>'+
+        '<td>'+zelle+'</td></tr>';
+    }).join("")+'</tbody></table>'+hinweis;
+  altVerdrahten();
+}
+function altVerdrahten(){
+  const b=document.getElementById("invAlt");
+  if(!b) return;
+  b.addEventListener("click",()=>{
+    const txt=JSON.stringify({app:"stempeluhr-rechnungen-altbestand",stand:new Date().toISOString(),
+      rechnungen:rechnungen},null,2);
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([txt],{type:"application/json"}));
+    a.download="stempeluhr-rechnungen-altbestand.json"; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),8000);
+  });
+}
+
 function startOfWeek(d){const x=new Date(d);const day=(x.getDay()+6)%7;x.setHours(0,0,0,0);x.setDate(x.getDate()-day);return x;}
 function renderWeek(){const sow=startOfWeek(new Date());const days=[0,1,2,3,4,5,6].map(i=>{const d=new Date(sow);d.setDate(sow.getDate()+i);return d;});
   const sums=days.map(d=>{const s=d.getTime(),e=s+864e5;return entries.filter(x=>x.start>=s&&x.start<e).reduce((a,x)=>a+x.dur,0);});
@@ -2007,7 +2152,7 @@ $("yearSel").addEventListener("change",renderYear);
 $("onlyOpenInv").addEventListener("change",e=>{settings.onlyOpenInv=e.target.checked;saveSettings();renderMonat();});
 function render(){const totalSec=entries.reduce((s,e)=>s+e.dur,0),totalEur=entries.reduce((s,e)=>s+hours(e.dur)*(e.satz||60),0);
   const today=new Date();today.setHours(0,0,0,0);const todaySec=entries.filter(e=>e.start>=today.getTime()).reduce((s,e)=>s+e.dur,0);
-  $("s-total").textContent=nf2.format(hours(totalSec));$("s-eur").textContent=eur.format(totalEur);$("s-count").textContent=entries.length;$("s-today").textContent=nf2.format(hours(todaySec));
+  $("s-total").textContent=nf2.format(hours(totalSec));$("s-eur").textContent=eur.format(totalEur);$("s-today").textContent=nf2.format(hours(todaySec));
   renderBars($("byAuftraggeber"),groupSum("auftraggeber"),true);renderBars($("byAuftrag"),groupSum("auftrag"),false);
   renderWeek();renderYear();renderMonat();
   const sel=$("filterAuftraggeber"),cur=sel.value;const agb=[...new Set(entries.map(e=>e.auftraggeber))];
@@ -2024,22 +2169,36 @@ function sumOf(rows){const sec=rows.reduce((a,e)=>a+e.dur,0),e=rows.reduce((a,x)
 function updateFilterSum(rows){const el=$("filterSum");if(!el)return;const t=sumOf(rows);
   el.textContent=t.n+" Buchung"+(t.n===1?"":"en")+" \u00b7 "+fmtClock(t.sec)+" ("+nf2.format(hours(t.sec))+" h) \u00b7 "+eur2.format(t.eur);
   el.className="pill "+(t.n?"ok":"");}
+
+/* Steht diese Buchung schon auf einer Rechnung? Gelesen aus dem
+   Rechnungsbuch, mehr nicht – die Stempeluhr führt keine Rechnungen. */
+let rbMerker = null;
+function rechnungsZelle(e){
+  if (rbMerker === null) rbMerker = rbStand();
+  if (!rbMerker) return '<span style="color:var(--muted-2)" title="Kein Rechnungsbuch auf diesem Gerät gefunden.">–</span>';
+  const k = buchungsSchluessel(e).find(x => rbMerker.karte[x]);
+  if (!k) return '<span class="pill warn" style="font-size:10.5px">offen</span>';
+  const nr = rbMerker.nummer[rbMerker.karte[k]] || 'Entwurf';
+  return '<span class="pill ok" style="font-size:10.5px" title="Steht auf Rechnung ' + esc(nr) + '">'
+       + esc(nr) + '</span>';
+}
 function tableFoot(rows){const t=sumOf(rows);const b='font-weight:700;border-top:2px solid var(--line)';
   return '<tfoot><tr><td colspan="3" style="'+b+'">Summe ('+t.n+' Buchung'+(t.n===1?"":"en")+')</td>'+
     '<td class="num" style="'+b+'">'+fmtClock(t.sec)+' <small>('+nf2.format(hours(t.sec))+')</small></td>'+
-    '<td colspan="3" style="'+b+'">'+eur2.format(t.eur)+'</td><td style="'+b+'"></td></tr></tfoot>';}
-function renderTable(){const rows=tableRows();updateFilterSum(rows);
+    '<td colspan="3" style="'+b+'">'+eur2.format(t.eur)+'</td><td style="'+b+'"></td><td style="'+b+'"></td></tr></tfoot>';}
+function renderTable(){rbMerker=null;const rows=tableRows();updateFilterSum(rows);
   if(!rows.length){$("tableWrap").innerHTML='<div class="empty">Keine Buchungen für diese Auswahl.</div>';return;}
   const arrow=k=>sortState.key===k?(sortState.dir<0?" ▼":" ▲"):"";
   $("tableWrap").innerHTML='<table><thead><tr>'+
     '<th class="sortable" data-k="start">Datum'+arrow("start")+'</th><th>Start</th><th>Ende</th>'+
     '<th class="num sortable" data-k="dur">Std'+arrow("dur")+'</th>'+
     '<th class="sortable" data-k="auftraggeber">Auftraggeber'+arrow("auftraggeber")+'</th>'+
-    '<th class="sortable" data-k="auftrag">Auftrag'+arrow("auftrag")+'</th><th>Notiz</th><th></th></tr></thead><tbody>'+
+    '<th class="sortable" data-k="auftrag">Auftrag'+arrow("auftrag")+'</th><th>Notiz</th><th>Rechnung</th><th></th></tr></thead><tbody>'+
     rows.map(e=>{const s=dt(e.start),en=dt(e.end||e.start+e.dur*1000);return '<tr><td>'+s.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"2-digit"})+'</td>'+
     '<td class="num">'+s.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})+'</td><td class="num">'+en.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})+'</td>'+
     '<td class="num">'+fmtClock(e.dur)+' <small style="color:var(--muted)">('+nf2.format(hours(e.dur))+')</small></td><td>'+esc(e.auftraggeber)+'</td><td>'+esc(e.auftrag)+'</td>'+
-    '<td style="color:var(--muted)">'+esc(e.notiz||"—")+'</td><td style="white-space:nowrap"><button class="ghost" style="padding:2px 7px" data-edit="'+e.id+'">✎</button> <button class="del" data-id="'+e.id+'">✕</button></td></tr>';}).join("")+'</tbody>'+tableFoot(rows)+'</table>';
+    '<td style="color:var(--muted)">'+esc(e.notiz||"—")+'</td>'+
+    '<td style="white-space:nowrap">'+rechnungsZelle(e)+'</td><td style="white-space:nowrap"><button class="ghost" style="padding:2px 7px" data-edit="'+e.id+'">✎</button> <button class="del" data-id="'+e.id+'">✕</button></td></tr>';}).join("")+'</tbody>'+tableFoot(rows)+'</table>';
   $("tableWrap").querySelectorAll("th.sortable").forEach(th=>th.addEventListener("click",()=>{const k=th.dataset.k;
     if(sortState.key===k)sortState.dir*=-1;else{sortState.key=k;sortState.dir=(k==="auftraggeber"||k==="auftrag")?1:-1;}renderTable();}));
   $("tableWrap").querySelectorAll(".del").forEach(b=>b.addEventListener("click",async()=>{const id=b.dataset.id;
@@ -2263,6 +2422,31 @@ zeitenSpiegeln();
   /* Wird die Werkbank anderswo umgeschaltet, zieht diese Seite mit. */
   WB.horchen("theme",function(n){if(n.theme==="light"||n.theme==="dark")setzen(n.theme,false);});
   gleichziehen();
+})();
+</script>
+<footer class="site">
+  <span>© <span id="yr2"></span> Maik Unverricht · Stempeluhr</span>
+  <span class="f-r"><button class="ghost" id="srcBtn2" type="button">Datenablage</button><a href="https://maikunverricht.github.io/WerkbankUnverricht/">Werkbank ↗</a></span>
+</footer>
+<script>
+/* ═══════ Rahmen: Datenablage-Dialog und Jahreszahl ═══════ */
+(function(){
+  var dlg=document.getElementById('dlgSrc');
+  function auf(){ if(dlg && !dlg.open) dlg.showModal(); }
+  ['srcChip','srcBtn2'].forEach(function(id){
+    var b=document.getElementById(id); if(b) b.addEventListener('click',auf);
+  });
+  if(dlg){
+    dlg.querySelectorAll('[data-src-close]').forEach(function(b){
+      b.addEventListener('click',function(){ dlg.close(); });
+    });
+    /* Ein Klick auf einen Ablageknopf schließt den Dialog, damit der
+       Dateidialog des Browsers nicht dahinter aufgeht. */
+    ['linkExcel','importExcel','saveExcel','downloadExcel','backupBtn','restoreBtn']
+      .forEach(function(id){ var b=document.getElementById(id);
+        if(b) b.addEventListener('click',function(){ setTimeout(function(){dlg.close();},0); }); });
+  }
+  var y=document.getElementById('yr2'); if(y) y.textContent=new Date().getFullYear();
 })();
 </script>
 </body>
