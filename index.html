@@ -190,7 +190,7 @@ document.documentElement.setAttribute("data-theme",g);}catch(e){}})();
   /* Ohne das setzen die breiten Tabellen die Spalte auf ihre Mindestbreite
      und schieben das ganze Gerüst über den Rand hinaus. */
   .layout > *,.dash > *,.grid2 > *{min-width:0}
-  #tableWrap,#monatsuebersicht,#yearView{overflow-x:auto}
+  #tableWrap,#monatsuebersicht,#yearView,.konto-tab{overflow-x:auto}
   #tableWrap::-webkit-scrollbar,#monatsuebersicht::-webkit-scrollbar,#yearView::-webkit-scrollbar{height:8px}
   #tableWrap::-webkit-scrollbar-thumb,#monatsuebersicht::-webkit-scrollbar-thumb,#yearView::-webkit-scrollbar-thumb{
     background:var(--line-strong);border-radius:100px}
@@ -371,6 +371,19 @@ document.documentElement.setAttribute("data-theme",g);}catch(e){}})();
   .job-row .jstatus.st-abgerechnet{color:var(--accent);border-color:var(--accent)}
   .job-row .jsatz{flex:none;font-family:var(--mono);font-size:11.5px;color:var(--muted-2)}
   .modal-actions .discard{font-weight:500}
+
+  /* ---------- Stundenkonto ---------- */
+  .konto-blk + .konto-blk{margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
+  .konto-kopf{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+  .konto-kopf b{font-size:15px}
+  .konto-kopf .g{font-family:var(--mono);font-size:11.5px;color:var(--muted-2)}
+  .konto-kopf .pill{margin-left:auto}
+  .konto-hin{font-size:12.5px;color:var(--muted);margin:0 0 4px}
+  .konto-hin.warn{color:var(--danger)}
+  .konto-tab td.plus{color:var(--warn)}
+  .konto-tab td.minus{color:var(--accent2)}
+  .konto-tab tr.laufend td{font-style:italic}
+  .konto-tab td:first-child{white-space:nowrap}
 
   /* ---------- Woche ---------- */
   .weekbars{display:flex;align-items:flex-end;gap:8px;height:120px;padding-top:6px}
@@ -612,6 +625,7 @@ footer.site .pill.sm{height:30px;padding:0 11px;font-size:13px;font-family:var(-
       <div class="panel"><h2>Jahr <select class="ghost ctl" id="yearSel" style="padding:3px 6px"></select></h2><div id="yearView"></div></div>
     </div>
     <div class="panel"><h2 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Monatsübersicht <a href="https://maikunverricht.github.io/Rechnungsbuch/" class="pill" style="font-weight:500;text-decoration:none">Rechnungsbuch ↗</a><span class="pill" id="invSummary" style="font-weight:500"></span><label style="margin-left:auto;font-size:12px;font-weight:500;display:flex;align-items:center;gap:6px;white-space:nowrap"><input type="checkbox" id="onlyOpenInv" style="width:auto">nur nicht abgerechnete</label></h2><div id="monatsuebersicht"></div></div>
+    <div class="panel" id="kontoPanel" hidden><h2 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Stundenkonto <span class="pill" style="font-weight:500">Auszahlungsgrenze</span></h2><div id="kontoView"></div></div>
     <div class="panel">
       <div class="toolbar">
         <h2 style="margin:0;flex:1">Buchungen</h2>
@@ -1699,7 +1713,11 @@ function abFormen(roh,quelle){
   const zahl=v=>{const n=parseFloat(String(v).replace(",","."));return Number.isFinite(n)?n:null;};
   m.auftraggeber=(Array.isArray(roh.auftraggeber)?roh.auftraggeber:[])
     .filter(x=>x&&x.name).map(x=>({id:String(x.id||x.name),name:String(x.name),
-      satz:zahl(x.stundensatz),aktiv:x.aktiv!==false}));
+      satz:zahl(x.stundensatz),aktiv:x.aktiv!==false,
+      /* Monatliche Auszahlungsgrenze mit Gültigkeit ab Monat – geführt im Auftragsbuch. */
+      grenzen:(Array.isArray(x.monatsgrenze)?x.monatsgrenze:[])
+        .map(y=>({ab:String(y&&y.ab||"").slice(0,7),eur:y&&y.eur!=null&&y.eur!==""?zahl(y.eur):null}))
+        .filter(y=>/^\d{4}-\d{2}$/.test(y.ab)).sort((a,b)=>a.ab.localeCompare(b.ab))}));
   const nachId={};m.auftraggeber.forEach(g=>nachId[g.id]=g);
   m.auftraege=(Array.isArray(roh.auftraege)?roh.auftraege:[])
     .filter(x=>x&&x.name&&nachId[String(x.auftraggeberId)])
@@ -1764,7 +1782,7 @@ async function abLaden({nachfragen=false}={}){
 }
 function abFertig(){
   abStand=new Date();abNachziehen();abChip();
-  if(gestartet){renderMgmt();render();}
+  if(gestartet){renderMgmt();render();zeitenSpiegeln();}
 }
 function abChip(){
   const c=$("abChip");if(!c)return;
@@ -1854,7 +1872,14 @@ function zeitenSpiegeln(){
     }catch(e){}
     const stand={app:"werkbank-stempeluhr",version:1,stand:new Date().toISOString(),
       gesamt:{sec:sec,eur:wert,buchungen:entries.length},offen:offen,
-      jeAuftrag:jeAuftrag,jeAuftraggeber:jeAuftraggeber,laufend:l};
+      jeAuftrag:jeAuftrag,jeAuftraggeber:jeAuftraggeber,laufend:l,konto:null};
+    /* Stundenkonto je Auftraggeber mit Auszahlungsgrenze. Fehlt die
+       Grenze überall, bleibt das Feld null. */
+    try{
+      const ks=(typeof master!=="undefined"&&master)?kontenAlle():[];
+      if(ks.length){stand.konto={};ks.forEach(k=>{stand.konto[k.g.id]={h:k.konto,eur:k.kontoEur,satz:k.satz,
+        grenze:k.grenze,frei:k.frei,aeltester:k.aeltester,ausgleichBis:k.ausgleichBis,alter:k.alter};});}
+    }catch(e){}
     WB.schreiben(WB_ZEIT_LS,stand);
     WB.melden("zeiten",{stand:stand.stand,laufend:l.aktiv});
   }catch(e){}
@@ -2077,6 +2102,92 @@ function rbStand(){
   return {karte:d.abgerechnet,nummer:nummer};
 }
 
+/* ═══════ Stundenkonto bei Auszahlungsgrenze ═══════
+   Für Auftraggeber mit Monatsgrenze (z. B. Minijob 603 €) wird je Monat
+   nur bis zur Grenze ausgezahlt. Was darüber liegt, wandert als STUNDEN
+   aufs Konto und wird in schwächeren Monaten mit dem dann gültigen Satz
+   ausgezahlt. Das Konto lebt in Stunden, nicht in Euro – steigt der
+   Mindestlohn, wird das Guthaben zum neuen Satz bezahlt.
+   Abgebaut wird das älteste Guthaben zuerst; daraus folgt, bis wann es
+   ausgeglichen sein muss (12 Monate). Rechtliches klärt das Lohnbüro –
+   hier wird nur gerechnet. */
+function ymVon(ts){const d=dt(ts);return d.getFullYear()+"-"+two(d.getMonth()+1);}
+function ymPlus(ym,n){const p=ym.split("-").map(Number),d=new Date(p[0],p[1]-1+n,1);return d.getFullYear()+"-"+two(d.getMonth()+1);}
+function ymDiff(a,b){const p=a.split("-").map(Number),q=b.split("-").map(Number);return (q[0]-p[0])*12+(q[1]-p[1]);}
+function ymKurz(ym){const p=ym.split("-");return p[1]+"/"+p[0];}
+function grenzeFuer(g,ym){let v=null;(g.grenzen||[]).forEach(x=>{if(x.ab<=ym)v=x.eur;});return v;}
+function hatGrenze(g){return !!g&&(g.grenzen||[]).some(x=>x.eur!=null);}
+const r6=x=>Math.round(x*1e6)/1e6;
+const KONTO_WARN_MONATE=10, KONTO_FRIST_MONATE=12;
+function kontoVon(g){
+  if(!hatGrenze(g))return null;
+  const eig=entries.filter(e=>e.agbId?e.agbId===g.id:e.auftraggeber===g.name);
+  if(!eig.length)return null;
+  const je={};
+  eig.forEach(e=>{const ym=ymVon(e.start),z=je[ym]||(je[ym]={h:0,eur:0});
+    z.h+=hours(e.dur);z.eur+=hours(e.dur)*(e.satz||60);});
+  const keys=Object.keys(je).sort(),jetzt=ymVon(Date.now());
+  const bis=keys[keys.length-1]>jetzt?keys[keys.length-1]:jetzt;
+  let satzLetzt=g.satz!=null?g.satz:60,konto=0;
+  const lose=[],monate=[];
+  for(let ym=keys[0];ym<=bis;ym=ymPlus(ym,1)){
+    const z=je[ym]||{h:0,eur:0};
+    /* Satz des Monats: aus den Buchungen; ohne Buchung der zuletzt gültige. */
+    const satz=z.h>0?z.eur/z.h:satzLetzt; if(z.h>0)satzLetzt=satz;
+    const G=grenzeFuer(g,ym), gH=(G!=null&&satz>0)?r6(G/satz):null;
+    const vorher=konto, anspruch=r6(z.h+konto);
+    const aus=gH==null?anspruch:Math.min(anspruch,gH);
+    konto=r6(anspruch-aus);
+    const delta=r6(z.h-aus);
+    if(delta>0)lose.push({ym:ym,h:delta});
+    else{let ab=-delta;while(ab>1e-9&&lose.length){const l=lose[0],t=Math.min(l.h,ab);
+      l.h=r6(l.h-t);ab=r6(ab-t);if(l.h<=1e-9)lose.shift();}}
+    monate.push({ym:ym,h:z.h,satz:satz,grenze:G,grenzeH:gH,ausH:aus,ausEur:aus*satz,
+      vorher:vorher,konto:konto,laufend:ym===jetzt});
+  }
+  const aeltester=konto>1e-6&&lose.length?lose[0].ym:null;
+  const akt=monate[monate.length-1];
+  /* Platz im laufenden Monat: so viele Stunden gehen noch, ohne dass das
+     Konto wächst. Ist es positiv, wird zugleich Guthaben abgebaut. */
+  const frei=akt&&akt.laufend&&akt.grenzeH!=null?Math.max(0,r6(akt.grenzeH-akt.h-akt.vorher)):null;
+  return{g:g,monate:monate,konto:konto,kontoEur:konto*satzLetzt,satz:satzLetzt,
+    grenze:grenzeFuer(g,jetzt),frei:frei,aeltester:aeltester,
+    ausgleichBis:aeltester?ymPlus(aeltester,KONTO_FRIST_MONATE-1):null,
+    alter:aeltester?ymDiff(aeltester,jetzt):0};
+}
+function kontenAlle(){return master.auftraggeber.map(kontoVon).filter(Boolean);}
+function vz(h){return (h>0?"+":h<0?"−":"")+nf2.format(Math.abs(h));}
+function renderKonto(){
+  const p=$("kontoPanel"),v=$("kontoView");if(!p||!v)return;
+  const ks=kontenAlle();
+  p.hidden=!ks.length; if(!ks.length){v.innerHTML="";return;}
+  v.innerHTML=ks.map(k=>{
+    const warn=k.konto>1e-6&&k.alter>=KONTO_WARN_MONATE;
+    const pill=k.konto>1e-6
+      ?'<span class="pill '+(warn?"warn":"")+'" style="font-weight:600">Konto '+vz(k.konto)+' h · '+eur2.format(k.kontoEur)+'</span>'
+      :'<span class="pill ok">Konto ausgeglichen</span>';
+    const hin=[];
+    if(k.frei!=null)hin.push(k.frei>1e-6
+      ?'<p class="konto-hin">Diesen Monat noch Platz für <b>'+nf2.format(k.frei)+' h</b> bis zur Grenze.</p>'
+      :'<p class="konto-hin">Grenze diesen Monat erreicht – weitere Stunden gehen aufs Konto.</p>');
+    if(k.aeltester)hin.push('<p class="konto-hin'+(warn?' warn':'')+'">Ältestes Guthaben aus '+esc(monthLabel(k.aeltester))+
+      ' – Ausgleich spätestens bis '+esc(monthLabel(k.ausgleichBis))+'.'+(warn?' Bitte zeitnah abbauen.':'')+'</p>');
+    const rows=k.monate.slice(-12).reverse().map(m=>{
+      const d=r6(m.konto-m.vorher);
+      return '<tr'+(m.laufend?' class="laufend" title="laufender Monat"':'')+'><td>'+esc(monthLabel(m.ym))+'</td>'+
+        '<td class="num">'+nf2.format(m.h)+' h</td>'+
+        '<td class="num">'+(m.grenze!=null?eur.format(m.grenze)+' <small style="color:var(--muted)">('+nf2.format(m.grenzeH)+' h)</small>':'–')+'</td>'+
+        '<td class="num">'+nf2.format(m.ausH)+' h <small style="color:var(--muted)">· '+eur2.format(m.ausEur)+'</small></td>'+
+        '<td class="num '+(d>1e-6?"plus":d<-1e-6?"minus":"")+'">'+(Math.abs(d)>1e-6?vz(d)+' h':'–')+'</td>'+
+        '<td class="num">'+nf2.format(m.konto)+' h</td></tr>';}).join("");
+    return '<div class="konto-blk"><div class="konto-kopf"><b>'+esc(k.g.name)+'</b>'+
+      '<span class="g">Grenze '+(k.grenze!=null?eur.format(k.grenze)+'/Monat':'keine')+'</span>'+pill+'</div>'+hin.join("")+
+      '<div class="konto-tab"><table><thead><tr><th>Monat</th><th class="num">Gearbeitet</th><th class="num">Grenze</th>'+
+      '<th class="num">Auszuzahlen</th><th class="num">Übertrag</th><th class="num">Konto</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+  }).join("")+'<div class="empty" style="text-align:left;margin-top:12px">Übertrag + = aufs Konto, − = ausgezahlt aus dem Konto. '+
+    'Das Guthaben wird in Stunden geführt und zum Satz des Auszahlungsmonats bezahlt. Ob und wie ein Arbeitszeitkonto zulässig ist, klärt das Lohnbüro.</div>';
+}
+
 function monatAgg(){const m={};entries.forEach(e=>{const d=dt(e.start),ym=d.getFullYear()+"-"+two(d.getMonth()+1),k=ym+"|"+e.auftraggeber;
   if(!m[k])m[k]={key:k,ym:ym,monat:d.toLocaleDateString("de-DE",{month:"long",year:"numeric"}),agb:e.auftraggeber,sec:0,satz:e.satz||60,ord:d.getFullYear()*100+d.getMonth()};m[k].sec+=e.dur;});
   return Object.values(m).sort((a,b)=>b.ord-a.ord||a.agb.localeCompare(b.agb));}
@@ -2176,7 +2287,7 @@ function render(){const totalSec=entries.reduce((s,e)=>s+e.dur,0),totalEur=entri
   const today=new Date();today.setHours(0,0,0,0);const todaySec=entries.filter(e=>e.start>=today.getTime()).reduce((s,e)=>s+e.dur,0);
   $("s-total").textContent=nf2.format(hours(totalSec));$("s-eur").textContent=eur.format(totalEur);$("s-today").textContent=nf2.format(hours(todaySec));
   renderBars($("byAuftraggeber"),groupSum("auftraggeber"),true);renderBars($("byAuftrag"),groupSum("auftrag"),false);
-  renderWeek();renderYear();renderMonat();
+  renderWeek();renderYear();renderMonat();renderKonto();
   const sel=$("filterAuftraggeber"),cur=sel.value;const agb=[...new Set(entries.map(e=>e.auftraggeber))];
   sel.innerHTML='<option value="">Alle Auftraggeber</option>'+agb.map(a=>'<option value="'+esc(a)+'">'+esc(a)+'</option>').join("");sel.value=cur;
   renderTable();updateWarn();}
@@ -2248,6 +2359,12 @@ function buildWorkbook(){const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(agbR.length?agbR:[{Name:"","Stundensatz (EUR/h)":""}]),"Auftraggeber");
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(aufR.length?aufR:[{"Auftrags-ID":"",Titel:"",Auftraggeber:"",Status:"",Projektnummer:"","Stundensatz (EUR/h)":""}]),"Aufträge");
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(monatRows().length?monatRows():[{Monat:"",Auftraggeber:"",Stunden:"","Stundensatz (EUR/h)":"","Betrag (EUR)":"","Rechnung gestellt":"","Rechnungsnummer":"","Rechnungsdatum":"","Schl\u00fcssel":""}]),"Monatsübersicht");
+  const kR=[];kontenAlle().forEach(k=>k.monate.forEach(m=>kR.push({Auftraggeber:k.g.name,Monat:monthLabel(m.ym),
+    "Gearbeitet (h)":Math.round(m.h*100)/100,"Grenze (EUR)":m.grenze!=null?m.grenze:"",
+    "Grenze (h)":m.grenzeH!=null?Math.round(m.grenzeH*100)/100:"","Auszuzahlen (h)":Math.round(m.ausH*100)/100,
+    "Auszuzahlen (EUR)":Math.round(m.ausEur*100)/100,"Übertrag (h)":Math.round((m.konto-m.vorher)*100)/100,
+    "Konto (h)":Math.round(m.konto*100)/100})));
+  if(kR.length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(kR),"Stundenkonto");
   return wb;}
 function parseDE(datum,zeit){if(datum==null||datum==="")return null;const ds=String(datum).trim();
   const p=ds.split(/[.\/-]/).map(x=>parseInt(x,10));if(p.length<3||isNaN(p[0]))return null;let d=p[0],m=p[1],y=p[2];if(y<100)y+=2000;
@@ -2387,6 +2504,16 @@ $("pdfGo").addEventListener("click",()=>{
   ensure(16);doc.setDrawColor(120);doc.line(left,y,right,y);y+=7;
   doc.setFont(undefined,"bold");doc.text("Summe Stunden:",left,y);doc.text(nf2.format(hours(gSec))+" h",left+34,y);y+=6;
   if(incAmount){doc.setFont(undefined,"normal");doc.text("Betrag: "+nf2.format(gEur)+" EUR",left,y);y+=6;}
+  /* Auszahlungsgrenze: was in diesem Monat ausgezahlt wird und was aufs Konto geht. */
+  if(mk&&agb){const g=master.auftraggeber.find(x=>x.name===agb),k=g?kontoVon(g):null,
+    m=k?k.monate.find(x=>x.ym===mk):null;
+    if(m&&m.grenze!=null){ensure(30);y+=3;doc.setFont(undefined,"normal");
+      doc.text("Auszahlungsgrenze: "+nf2.format(m.grenze)+" EUR ("+nf2.format(m.grenzeH)+" h)",left,y);y+=6;
+      if(m.vorher>1e-6){doc.text("Stundenkonto aus Vormonaten: "+nf2.format(m.vorher)+" h",left,y);y+=6;}
+      doc.setFont(undefined,"bold");
+      doc.text("Auszuzahlen: "+nf2.format(m.ausH)+" h · "+nf2.format(m.ausEur)+" EUR",left,y);y+=6;
+      doc.setFont(undefined,"normal");
+      doc.text("Stundenkonto nach diesem Monat: "+nf2.format(m.konto)+" h",left,y);y+=6;}}
   if(settings.pdfSign){y+=16;ensure(20);doc.setDrawColor(150);doc.line(left,y,left+70,y);doc.line(right-70,y,right,y);y+=5;
     doc.setFontSize(9);doc.setFont(undefined,"normal");doc.text("Datum, Unterschrift Bearbeiter",left,y);doc.text("Datum, Unterschrift Auftraggeber",right-70,y);}
   let fname=($("pdfName").value.trim()||"Stundennachweis").replace(/[\\/:*?"<>|]/g,"-");
