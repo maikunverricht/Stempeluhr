@@ -1776,8 +1776,14 @@ async function abLaden({nachfragen=false}={}){
       abZugriff=(p==="granted");
       if(abZugriff){
         const txt=await (await abHandle.getFile()).text();
-        const m=abFormen(txt.trim()?JSON.parse(txt):null,"datei");
-        if(m.quelle!=="keine"){master=m;abFertig();return;}
+        const roh=txt.trim()?JSON.parse(txt):null;
+        /* Ist das Auftragsbuch ohne Dateifreigabe offen, schreibt es nur die
+           Lesekopie – die Datei bleibt alt. Es gilt, wer jünger ist. */
+        const sp=abSpiegel(),t=d=>{const x=Date.parse(d&&d.updated);return Number.isFinite(x)?x:0;};
+        if(!(sp&&t(sp)>t(roh))){
+          const m=abFormen(roh,"datei");
+          if(m.quelle!=="keine"){master=m;abFertig();return;}
+        }
       }
     }catch(e){abZugriff=false;}
   }
