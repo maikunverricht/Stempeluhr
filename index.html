@@ -1717,7 +1717,10 @@ function abFormen(roh,quelle){
       /* Monatliche Auszahlungsgrenze mit Gültigkeit ab Monat – geführt im Auftragsbuch. */
       grenzen:(Array.isArray(x.monatsgrenze)?x.monatsgrenze:[])
         .map(y=>({ab:String(y&&y.ab||"").slice(0,7),eur:y&&y.eur!=null&&y.eur!==""?zahl(y.eur):null}))
-        .filter(y=>/^\d{4}-\d{2}$/.test(y.ab)).sort((a,b)=>a.ab.localeCompare(b.ab))}));
+        .filter(y=>/^\d{4}-\d{2}$/.test(y.ab)).sort((a,b)=>a.ab.localeCompare(b.ab)),
+      /* Startstand des Stundenkontos zu Beginn eines Monats. */
+      kontoStart:(x.kontoStart&&/^\d{4}-\d{2}$/.test(String(x.kontoStart.ab||"").slice(0,7))&&zahl(x.kontoStart.h)!=null)
+        ?{ab:String(x.kontoStart.ab).slice(0,7),h:zahl(x.kontoStart.h)}:null}));
   const nachId={};m.auftraggeber.forEach(g=>nachId[g.id]=g);
   m.auftraege=(Array.isArray(roh.auftraege)?roh.auftraege:[])
     .filter(x=>x&&x.name&&nachId[String(x.auftraggeberId)])
@@ -2122,11 +2125,13 @@ const KONTO_WARN_MONATE=10, KONTO_FRIST_MONATE=12;
 function kontoVon(g){
   if(!hatGrenze(g))return null;
   const eig=entries.filter(e=>e.agbId?e.agbId===g.id:e.auftraggeber===g.name);
-  if(!eig.length)return null;
+  const ks=g.kontoStart&&g.kontoStart.h>0?g.kontoStart:null;
+  if(!eig.length&&!ks)return null;
   const je={};
   eig.forEach(e=>{const ym=ymVon(e.start),z=je[ym]||(je[ym]={h:0,eur:0});
     z.h+=hours(e.dur);z.eur+=hours(e.dur)*(e.satz||60);});
   const keys=Object.keys(je).sort(),jetzt=ymVon(Date.now());
+  if(ks&&(!keys.length||ks.ab<keys[0]))keys.unshift(ks.ab);
   const bis=keys[keys.length-1]>jetzt?keys[keys.length-1]:jetzt;
   let satzLetzt=g.satz!=null?g.satz:60,konto=0;
   const lose=[],monate=[];
@@ -2135,6 +2140,9 @@ function kontoVon(g){
     /* Satz des Monats: aus den Buchungen; ohne Buchung der zuletzt gültige. */
     const satz=z.h>0?z.eur/z.h:satzLetzt; if(z.h>0)satzLetzt=satz;
     const G=grenzeFuer(g,ym), gH=(G!=null&&satz>0)?r6(G/satz):null;
+    /* Startstand: zu Beginn dieses Monats steht das Konto auf dem
+       eingetragenen Wert. Die Frist zählt ab dem Vormonat. */
+    if(ks&&ym===ks.ab){konto=r6(ks.h);lose.length=0;if(konto>0)lose.push({ym:ymPlus(ym,-1),h:konto});}
     const vorher=konto, anspruch=r6(z.h+konto);
     const aus=gH==null?anspruch:Math.min(anspruch,gH);
     konto=r6(anspruch-aus);
