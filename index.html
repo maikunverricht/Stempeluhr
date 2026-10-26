@@ -253,9 +253,6 @@ document.documentElement.setAttribute("data-theme",g);}catch(e){}})();
   .panel.zu > h2{margin-bottom:0;padding-bottom:0}
   .panel.zu > h2::before{display:none}
   .cards.zu{display:none}
-  .layout.breit{grid-template-columns:1fr;max-width:2200px}
-  .layout.breit .clock-card{order:2}
-  @media(min-width:1500px){.layout:not(.breit){max-width:2200px}}
 
   /* ---------- Tafeln ---------- */
   .panel{background:var(--panel);border:1px solid var(--glass-edge);border-radius:18px;padding:19px 21px;
@@ -531,6 +528,51 @@ html[data-theme="light"]{
   .btn-main,.btn-main:hover,.btn-main:active{transition:none;transform:none}
 }
 
+
+/* ═══════════════════════════════════════════════════════════════
+   Stoppuhr — überarbeitet 26.10.2026
+   Eine Spalte über die volle Breite: oben die Uhr, dann Kennzahlen,
+   dann der Rest. Die Uhr liegt quer: links der Bernstein-Ball – er ist
+   Start und Stopp –, umlaufen vom Stundenring; rechts die Zeit digital
+   auf die Sekunde. Läuft die Uhr, atmet ein Hof um den Ball, und der
+   Browser-Tab zeigt die laufende Zeit.
+   ═══════════════════════════════════════════════════════════════ */
+.layout{grid-template-columns:1fr;max-width:1680px}
+.clock-card{flex-direction:row;align-items:center;justify-content:flex-start;gap:34px;padding:22px 30px;flex-wrap:wrap}
+.uhr-ball{position:relative;width:176px;height:176px;flex:none;display:grid;place-items:center}
+.uhr-ball svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.uhr-ball .ring-track,.uhr-ball .ring-prog{stroke-width:7}
+.uhr-ball .btn-main{position:relative;width:132px;height:132px;font-size:16px;
+  color:var(--on-accent);border:none;
+  background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.55) 0%,rgba(255,255,255,0) 42%),
+             radial-gradient(circle at 62% 78%,rgba(0,0,0,.16) 0%,rgba(0,0,0,0) 60%),var(--accent);
+  box-shadow:0 14px 30px -12px color-mix(in srgb,var(--accent) 80%,transparent),inset 0 -8px 18px rgba(0,0,0,.14)}
+.uhr-ball .btn-main.running{color:var(--on-accent);
+  background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.55) 0%,rgba(255,255,255,0) 42%),
+             radial-gradient(circle at 62% 78%,rgba(0,0,0,.16) 0%,rgba(0,0,0,0) 60%),var(--accent);
+  box-shadow:0 14px 30px -12px color-mix(in srgb,var(--accent) 80%,transparent),inset 0 -8px 18px rgba(0,0,0,.14);
+  animation:uhrAtmen 2.4s ease-in-out infinite}
+.uhr-ball .btn-main::before{content:"";display:block;margin:0 auto 6px;width:0;height:0;
+  border-left:14px solid currentColor;border-top:9px solid transparent;border-bottom:9px solid transparent;transform:translateX(2px)}
+.uhr-ball .btn-main.running::before{width:14px;height:14px;border:none;border-radius:3px;background:currentColor;transform:none}
+@keyframes uhrAtmen{
+  0%,100%{box-shadow:0 14px 30px -12px color-mix(in srgb,var(--accent) 80%,transparent),inset 0 -8px 18px rgba(0,0,0,.14),0 0 0 0 color-mix(in srgb,var(--accent) 45%,transparent)}
+  50%{box-shadow:0 14px 30px -12px color-mix(in srgb,var(--accent) 80%,transparent),inset 0 -8px 18px rgba(0,0,0,.14),0 0 0 16px color-mix(in srgb,var(--accent) 0%,transparent)}}
+.uhr-digital{display:flex;flex-direction:column;gap:8px;min-width:0}
+.uhr-digital .time{font-size:clamp(46px,7vw,84px);line-height:1;letter-spacing:-.03em;white-space:nowrap}
+.uhr-digital .time .sec{font-size:inherit;color:inherit;font-weight:inherit;margin-left:0;
+  font-variation-settings:inherit}
+.uhr-digital .time .sec::before{content:":"}
+.uhr-digital .live-meta{text-align:left}
+.uhr-ctl{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:12px}
+@media(max-width:700px){
+  .clock-card{flex-direction:column;gap:18px}
+  .uhr-digital{align-items:center}.uhr-digital .live-meta{text-align:center}
+  .uhr-ctl{margin-left:0;align-items:center}
+}
+@media (prefers-reduced-motion:reduce){.uhr-ball .btn-main.running{animation:none}}
+.clock-card:has(#toggle.running) .state::before{background:var(--danger);box-shadow:0 0 0 4px color-mix(in srgb,var(--danger) 20%,transparent)}
+
 /* ═══ Rahmen wie in den übrigen Werkzeugen ═══ */
 .mark{display:inline-flex;align-items:center;justify-content:center;width:21px;height:21px;
   flex:none;color:var(--text)}
@@ -606,24 +648,26 @@ footer.site .pill.sm{height:30px;padding:0 11px;font-size:13px;font-family:var(-
 
 <div class="layout">
   <div class="clock-card">
-    <div class="clock-wrap">
-      <svg width="300" height="300" viewBox="0 0 300 300">
+    <div class="uhr-ball">
+      <svg width="300" height="300" viewBox="0 0 300 300" aria-hidden="true">
         <circle class="ring-track" cx="150" cy="150" r="132"></circle>
         <circle class="ring-prog" id="ring" cx="150" cy="150" r="132"></circle>
       </svg>
-      <div class="center">
-        <div class="state" id="state">Bereit</div>
-        <div class="time"><span id="time">00:00</span><span class="sec" id="sec">00</span></div>
-        <button class="btn-main" id="toggle">Start</button>
-      </div>
+      <button class="btn-main" id="toggle">Start</button>
     </div>
-    <button class="ghost" id="pauseBtn" style="display:none">Pause</button>
-    <div class="live-meta" id="liveMeta">Noch keine laufende Erfassung</div>
-    <div class="clock-ctrl">
-      <span>Rundung auf</span>
-      <select class="ghost" id="rounding" style="padding:4px 8px">
-        <option value="0">keine</option><option value="5">5 Min</option><option value="10">10 Min</option><option value="15">15 Min</option>
-      </select>
+    <div class="uhr-digital">
+      <div class="state" id="state">Bereit</div>
+      <div class="time" aria-live="off"><span id="time">00:00</span><span class="sec" id="sec">00</span></div>
+      <div class="live-meta" id="liveMeta">Noch keine laufende Erfassung</div>
+    </div>
+    <div class="uhr-ctl">
+      <button class="ghost" id="pauseBtn" style="display:none">Pause</button>
+      <div class="clock-ctrl">
+        <span>Rundung auf</span>
+        <select class="ghost" id="rounding" style="padding:4px 8px">
+          <option value="0">keine</option><option value="5">5 Min</option><option value="10">10 Min</option><option value="15">15 Min</option>
+        </select>
+      </div>
     </div>
   </div>
 
@@ -1610,6 +1654,7 @@ WBTor({
 </script>
 
 <script>
+const TITEL0=document.title;
 const LS_KEY="stempeluhr_entries_v2", M_KEY="stempeluhr_master_v1", B_KEY="stempeluhr_bearbeiter",
   RUN_KEY="stempeluhr_run_v1", R_KEY="stempeluhr_rechnungen_v1", S_KEY="stempeluhr_settings_v1", BK_KEY="stempeluhr_backups_v1", WARN_KEY="stempeluhr_warn_dismiss";
 const R=132, C=2*Math.PI*R, $=id=>document.getElementById(id);
@@ -1969,8 +2014,8 @@ function uiPaused(){$("toggle").textContent="Stopp";$("toggle").classList.add("r
   $("pauseBtn").style.display="";$("pauseBtn").textContent="Weiter";}
 function uiIdle(){$("toggle").textContent="Start";$("toggle").classList.remove("running");$("state").textContent="Bereit";
   $("pauseBtn").style.display="none";$("time").textContent="00:00";$("sec").textContent="00";ring.style.strokeDashoffset=C;
-  $("liveMeta").textContent="Noch keine laufende Erfassung";}
-function tick(){const el=currentElapsed();$("time").textContent=fmtClock(el);$("sec").textContent=String(Math.floor(el%60)).padStart(2,"0");
+  $("liveMeta").textContent="Noch keine laufende Erfassung";document.title=TITEL0;}
+function tick(){const el=currentElapsed();document.title=(clock.paused?"⏸ ":"▶ ")+fmtClock(el)+":"+String(Math.floor(el%60)).padStart(2,"0")+" · Stempeluhr";$("time").textContent=fmtClock(el);$("sec").textContent=String(Math.floor(el%60)).padStart(2,"0");
   ring.style.strokeDashoffset=C*(1-(el%3600)/3600);
   $("liveMeta").textContent=(clock.paused?"Pausiert · ":"Läuft seit ")+dt(clock.bookingStart).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});}
 function startClock(){clock={running:true,paused:false,accumSec:0,segStart:Date.now(),bookingStart:Date.now()};persistRun();uiRunning();tick();tickTimer=setInterval(tick,1000);}
@@ -2693,7 +2738,7 @@ zeitenSpiegeln();
 </script>
 
 <script>
-/* Kacheln einklappen (Klick auf die Überschrift) und breite Ansicht – nur Darstellung, merkt sich der Browser. */
+/* Kacheln einklappen (Klick auf die Überschrift) – nur Darstellung, merkt sich der Browser. */
 (function(){
   var KEY="stempeluhr_ui_v1", ui={zu:{},breit:false};
   try{var r=JSON.parse(localStorage.getItem(KEY));if(r&&typeof r==="object")ui={zu:r.zu||{},breit:!!r.breit};}catch(e){}
@@ -2724,9 +2769,6 @@ zeitenSpiegeln();
     if(cards){cards.classList.add("zu");ui.zu["Kennzahlen"]=1;if(kz)kz.setAttribute("aria-pressed","false");}sichern();});
   knopf("Alle ausklappen",function(){kacheln.forEach(function(x){x.el.classList.remove("zu");});
     if(cards){cards.classList.remove("zu");if(kz)kz.setAttribute("aria-pressed","true");}ui.zu={};sichern();});
-  var br=knopf("Breite Ansicht",function(){ui.breit=!ui.breit;layout.classList.toggle("breit",ui.breit);br.setAttribute("aria-pressed",String(ui.breit));sichern();},
-    "Eine Spalte über die volle Breite – die Uhr rückt nach unten");
-  br.setAttribute("aria-pressed",String(ui.breit));layout.classList.toggle("breit",ui.breit);
   dash.insertBefore(bar,dash.firstChild);
 })();
 </script>
