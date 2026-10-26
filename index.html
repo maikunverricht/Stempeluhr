@@ -2141,9 +2141,16 @@ function rbStand(){
    deren Positionen nicht einzeln mit Buchungen verknüpft sind. */
 function buchungRechnung(e,st){
   if(!st) return null;
-  const k=buchungsSchluessel(e).find(x=>st.karte[x]);
-  if(k){const i=st.rech[st.karte[k]];
-    return i?{info:i,via:"key"}:{info:{nummer:"Entwurf",state:"entwurf",anteil:0},via:"key"};}
+  const ks=buchungsSchluessel(e);
+  let k=ks.find(x=>st.karte[x]), rid=k?st.karte[k]:null, via="key";
+  /* Wurde ein Auftrag umgebucht, hat die Buchung eine andere Auftrags-ID als beim Rechnen.
+     Darum zählt ersatzweise der Rest des Schlüssels: Zeitpunkt | Stunden | Tätigkeit. */
+  if(rid==null){
+    if(!st.ohneAuf){st.ohneAuf={};Object.keys(st.karte).forEach(x=>{const t=x.slice(x.indexOf("|")+1);if(!(t in st.ohneAuf))st.ohneAuf[t]=st.karte[x];});}
+    for(const x of ks){const t=x.slice(x.indexOf("|")+1);if(t in st.ohneAuf){rid=st.ohneAuf[t];via="umgebucht";break;}}
+  }
+  if(rid!=null){const i=st.rech[rid];
+    return i?{info:i,via:via}:{info:{nummer:"Entwurf",state:"entwurf",anteil:0},via:via};}
   const d=new Date(e.start), tag=d.getFullYear()+"-"+two(d.getMonth()+1)+"-"+two(d.getDate());
   const hit=st.liste.find(i=>!i.verknuepft&&(i.state==="bezahlt"||i.state==="teil"||i.state==="unbezahlt")&&i.von&&i.bis&&
     tag>=i.von&&tag<=i.bis&&((e.aufId&&i.aufId&&e.aufId===i.aufId)||(!i.aufId&&e.agbId&&i.agbId&&e.agbId===i.agbId)));
@@ -2380,7 +2387,7 @@ function rechnungsZelle(e){
   const txt = i.state==='entwurf' ? 'Entwurf' : esc(i.nummer) + ' · ' + zs[1];
   const tip = 'Rechnung ' + esc(i.nummer) + ': ' + zs[1]
     + (i.brutto ? ' (' + eur2.format(i.bezahlt) + ' von ' + eur2.format(i.brutto) + ' bezahlt)' : '')
-    + (m.via === 'zeitraum' ? ' – zugeordnet über Auftrag und Leistungszeitraum' : '');
+    + (m.via === 'zeitraum' ? ' – zugeordnet über Auftrag und Leistungszeitraum' : m.via === 'umgebucht' ? ' – zugeordnet trotz geänderter Auftrags-ID (umgebucht)' : '');
   return '<span class="pill ' + zs[0] + '" style="font-size:10.5px" title="' + tip + '">' + txt + '</span>';
 }
 function tableFoot(rows){const t=sumOf(rows);const b='font-weight:700;border-top:2px solid var(--line)';
