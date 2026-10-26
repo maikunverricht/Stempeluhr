@@ -239,6 +239,24 @@ document.documentElement.setAttribute("data-theme",g);}catch(e){}})();
     letter-spacing:-.025em;font-variant-numeric:tabular-nums;font-variation-settings:'wdth' 108,'wght' 700}
   .stat .v.eur{color:var(--gold)}
 
+
+  /* ---------- Einklappbare Kacheln und breite Ansicht ---------- */
+  .kachelbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+  .kachelbar button{padding:5px 11px;font-size:12px}
+  .kachelbar button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+  .panel > h2.klappbar,.toolbar > h2.klappbar{cursor:pointer;user-select:none}
+  h2.klappbar .chev{display:inline-block;width:1.1em;color:var(--muted-2);transition:transform .15s}
+  .panel.zu h2.klappbar .chev{transform:rotate(-90deg)}
+  .panel.zu > *:not(h2):not(.toolbar){display:none !important}
+  .panel.zu .toolbar{margin-bottom:0}
+  .panel.zu .toolbar > *:not(h2){display:none !important}
+  .panel.zu > h2{margin-bottom:0;padding-bottom:0}
+  .panel.zu > h2::before{display:none}
+  .cards.zu{display:none}
+  .layout.breit{grid-template-columns:1fr;max-width:2200px}
+  .layout.breit .clock-card{order:2}
+  @media(min-width:1500px){.layout:not(.breit){max-width:2200px}}
+
   /* ---------- Tafeln ---------- */
   .panel{background:var(--panel);border:1px solid var(--glass-edge);border-radius:18px;padding:19px 21px;
     box-shadow:var(--shadow-lg);
@@ -2671,6 +2689,45 @@ zeitenSpiegeln();
         if(b) b.addEventListener('click',function(){ setTimeout(function(){dlg.close();},0); }); });
   }
   var y=document.getElementById('yr2'); if(y) y.textContent=new Date().getFullYear();
+})();
+</script>
+
+<script>
+/* Kacheln einklappen (Klick auf die Überschrift) und breite Ansicht – nur Darstellung, merkt sich der Browser. */
+(function(){
+  var KEY="stempeluhr_ui_v1", ui={zu:{},breit:false};
+  try{var r=JSON.parse(localStorage.getItem(KEY));if(r&&typeof r==="object")ui={zu:r.zu||{},breit:!!r.breit};}catch(e){}
+  function sichern(){try{localStorage.setItem(KEY,JSON.stringify(ui));}catch(e){}}
+  var dash=document.querySelector(".dash"), layout=document.querySelector(".layout");
+  if(!dash||!layout) return;
+  var kacheln=[];
+  function name(p,i){var h=p.querySelector("h2");return (h?h.firstChild&&h.firstChild.textContent||h.textContent:"")
+    .trim().replace(/\s+/g," ").slice(0,30)||("kachel"+i);}
+  [].slice.call(dash.querySelectorAll(".panel")).forEach(function(p,i){
+    var h=p.querySelector("h2"); if(!h) return;
+    var k=name(p,i); kacheln.push({el:p,key:k});
+    h.classList.add("klappbar");
+    var c=document.createElement("span");c.className="chev";c.textContent="\u25BE";h.insertBefore(c,h.firstChild);
+    h.addEventListener("click",function(ev){
+      if(ev.target.closest("select,a,label,input,button,.pill"))return;
+      setze(p,k,!p.classList.contains("zu"));});
+  });
+  var cards=dash.querySelector(".cards");
+  function setze(el,k,zu){el.classList.toggle("zu",zu);if(zu)ui.zu[k]=1;else delete ui.zu[k];sichern();}
+  kacheln.forEach(function(x){if(ui.zu[x.key])x.el.classList.add("zu");});
+  if(cards&&ui.zu["Kennzahlen"])cards.classList.add("zu");
+  var bar=document.createElement("div");bar.className="kachelbar";
+  function knopf(t,fn,title){var b=document.createElement("button");b.type="button";b.className="ghost";b.textContent=t;if(title)b.title=title;b.addEventListener("click",fn);bar.appendChild(b);return b;}
+  var kz=cards?knopf("Kennzahlen",function(){var zu=!cards.classList.contains("zu");setze(cards,"Kennzahlen",zu);kz.setAttribute("aria-pressed",String(!zu));},"Kennzahlen ein-/ausblenden"):null;
+  if(kz)kz.setAttribute("aria-pressed",String(!cards.classList.contains("zu")));
+  knopf("Alle einklappen",function(){kacheln.forEach(function(x){x.el.classList.add("zu");ui.zu[x.key]=1;});
+    if(cards){cards.classList.add("zu");ui.zu["Kennzahlen"]=1;if(kz)kz.setAttribute("aria-pressed","false");}sichern();});
+  knopf("Alle ausklappen",function(){kacheln.forEach(function(x){x.el.classList.remove("zu");});
+    if(cards){cards.classList.remove("zu");if(kz)kz.setAttribute("aria-pressed","true");}ui.zu={};sichern();});
+  var br=knopf("Breite Ansicht",function(){ui.breit=!ui.breit;layout.classList.toggle("breit",ui.breit);br.setAttribute("aria-pressed",String(ui.breit));sichern();},
+    "Eine Spalte über die volle Breite – die Uhr rückt nach unten");
+  br.setAttribute("aria-pressed",String(ui.breit));layout.classList.toggle("breit",ui.breit);
+  dash.insertBefore(bar,dash.firstChild);
 })();
 </script>
 </body>
