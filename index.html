@@ -2104,12 +2104,52 @@ function buchungsSchluessel(e){
   ks.push([auf,iso,(e.dur/3600).toFixed(2),notiz].join("|"));
   return ks;
 }
+/* Zahlungsstand je Rechnung – gleiche Rechnung wie im Rechnungsbuch (summe/zustand),
+   nur gelesen. brutto = Positionen + Steuer; Zahlungen mindern den Rest. */
+function rbRechnungInfo(r){
+  const c=v=>Math.round((Number(v)||0)*100)/100, n=v=>{const x=parseFloat(String(v).replace(",","."));return Number.isFinite(x)?x:0;};
+  const pos=Array.isArray(r.positionen)?r.positionen:[];
+  let netto=0, steuer=0; const gr=new Map();
+  pos.forEach(p=>{const b=c(n(p.menge)*n(p.preis));netto=c(netto+b);
+    const sz=r.steuerfall==="regel"||r.steuerfall==null?n(p.satz):0; gr.set(sz,c((gr.get(sz)||0)+b));});
+  gr.forEach((b,sz)=>{steuer=c(steuer+c(b*sz/100));});
+  const brutto=c(netto+steuer);
+  const bez=(Array.isArray(r.zahlungen)?r.zahlungen:[]).reduce((a,z)=>c(a+n(z&&z.betrag)),0);
+  const rest=c(brutto-bez);
+  let state;
+  if(r.storniert) state="storniert";
+  else if(r.stornoVon) state="storno";
+  else if(!r.festgeschrieben) state="entwurf";
+  else if(rest<=0.005) state="bezahlt";
+  else if(bez>0.005) state="teil";
+  else state="unbezahlt";
+  const anteil=state==="bezahlt"?1:(brutto>0?Math.min(1,Math.max(0,bez/brutto)):0);
+  return {id:String(r.id),nummer:r.nummer||"Entwurf",state:state,brutto:brutto,bezahlt:bez,rest:rest,anteil:anteil,
+    agbId:String(r.agbId||""),aufId:String(r.aufId||""),von:String(r.lVon||"").slice(0,10),bis:String(r.lBis||"").slice(0,10),
+    verknuepft:pos.some(p=>Array.isArray(p.quellen)&&p.quellen.length)};
+}
 function rbStand(){
   const d=rbLesen();
   if(!d||!d.abgerechnet||typeof d.abgerechnet!=="object") return null;
-  const nummer={}; (d.rechnungen||[]).forEach(r=>{nummer[r.id]=r.nummer||"Entwurf";});
-  return {karte:d.abgerechnet,nummer:nummer};
+  const nummer={}, rech={}, liste=[];
+  (d.rechnungen||[]).forEach(r=>{if(!r||r.id==null)return;nummer[r.id]=r.nummer||"Entwurf";
+    const i=rbRechnungInfo(r);rech[r.id]=i;liste.push(i);});
+  return {karte:d.abgerechnet,nummer:nummer,rech:rech,liste:liste};
 }
+/* Welche Rechnung deckt diese Buchung? 1. exakt über den Buchungsschlüssel,
+   2. ersatzweise über Auftrag/Auftraggeber und Leistungszeitraum – für Rechnungen,
+   deren Positionen nicht einzeln mit Buchungen verknüpft sind. */
+function buchungRechnung(e,st){
+  if(!st) return null;
+  const k=buchungsSchluessel(e).find(x=>st.karte[x]);
+  if(k){const i=st.rech[st.karte[k]];
+    return i?{info:i,via:"key"}:{info:{nummer:"Entwurf",state:"entwurf",anteil:0},via:"key"};}
+  const d=new Date(e.start), tag=d.getFullYear()+"-"+two(d.getMonth()+1)+"-"+two(d.getDate());
+  const hit=st.liste.find(i=>!i.verknuepft&&(i.state==="bezahlt"||i.state==="teil"||i.state==="unbezahlt")&&i.von&&i.bis&&
+    tag>=i.von&&tag<=i.bis&&((e.aufId&&i.aufId&&e.aufId===i.aufId)||(!i.aufId&&e.agbId&&i.agbId&&e.agbId===i.agbId)));
+  return hit?{info:hit,via:"zeitraum"}:null;
+}
+const ZSTAT={bezahlt:["ok","bezahlt"],teil:["warn","teilbezahlt"],unbezahlt:["warn","unbezahlt"],entwurf:["warn","Entwurf"],storniert:["warn","storniert"],storno:["warn","Storno"]};
 
 /* ═══════ Stundenkonto bei Auszahlungsgrenze ═══════
    Für Auftraggeber mit Monatsgrenze (z. B. Minijob 603 €) wird je Monat
@@ -2210,13 +2250,15 @@ function renderMonat(){
   let rows=monatAgg().map(r=>{
     const eig=entries.filter(e=>{const d=dt(e.start);
       return (d.getFullYear()+"-"+two(d.getMonth()+1))===r.ym && e.auftraggeber===r.agb;});
-    let ab=0, offEurRow=0; const nummern=new Set();
+    let ab=0, offEurRow=0, paidEur=0, billEur=0; const nummern=new Set();
+    const z={bezahlt:0,teil:0,unbezahlt:0,entwurf:0,storniert:0,storno:0};
     eig.forEach(e=>{
-      const k=st?buchungsSchluessel(e).find(x=>st.karte[x]):null;
-      if(k){ab++; nummern.add(st.nummer[st.karte[k]]||"Entwurf");}
-      else offEurRow+=hours(e.dur)*(e.satz||r.satz);
+      const m=buchungRechnung(e,st), wert=hours(e.dur)*(e.satz||r.satz);
+      if(m){ab++; nummern.add(m.info.nummer); z[m.info.state]=(z[m.info.state]||0)+1;
+        billEur+=wert; paidEur+=wert*(m.info.anteil||0);}
+      else offEurRow+=wert;
     });
-    return Object.assign({},r,{anz:eig.length,ab:ab,offEur:offEurRow,nummern:[...nummern]});
+    return Object.assign({},r,{anz:eig.length,ab:ab,offEur:offEurRow,nummern:[...nummern],z:z,paidEur:paidEur,billEur:billEur});
   });
 
   /* Offen ist, was Buchung für Buchung fehlt – nicht der ganze Monat,
@@ -2248,16 +2290,25 @@ function renderMonat(){
 
   $("monatsuebersicht").innerHTML='<table><thead><tr><th>Monat</th><th>Auftraggeber</th>'+
     '<th class="num">Stunden</th><th class="num">Satz</th><th class="num">Betrag</th>'+
-    '<th>Abgerechnet</th></tr></thead><tbody>'+
+    '<th>Abrechnung / Zahlung</th></tr></thead><tbody>'+
     rows.map(r=>{
       let zelle;
       if(!st) zelle='<span style="color:var(--muted-2)" title="Auf diesem Gerät wurde kein Rechnungsbuch gefunden.">–</span>';
-      else if(!r.ab) zelle='<span class="pill warn">offen</span>';
-      else if(r.ab<r.anz) zelle='<span class="pill warn">'+r.ab+' von '+r.anz+' Buchungen</span>'+
-        ' <small style="color:var(--muted)">'+eur.format(r.offEur)+' offen</small>';
-      else zelle='<span class="pill ok">abgerechnet</span>'+
-        (r.nummern.length?' <small style="color:var(--muted)">'+esc(r.nummern.join(", "))+'</small>':'');
-      return '<tr'+(st&&r.ab===r.anz?' style="opacity:.7"':'')+'><td>'+esc(r.monat)+'</td><td>'+esc(r.agb)+'</td>'+
+      else{
+        const teile=[], nr=r.nummern.length?' <small style="color:var(--muted)">'+esc(r.nummern.join(", "))+'</small>':'';
+        const nOff=r.anz-r.ab;
+        if(r.z.bezahlt===r.anz) teile.push('<span class="pill ok">bezahlt</span>');
+        else{
+          const einzeln=[r.z.bezahlt,r.z.teil,r.z.unbezahlt,r.z.entwurf,r.z.storniert+r.z.storno,nOff].filter(x=>x>0).length===1;
+          [["bezahlt","ok","bezahlt"],["teil","warn","teilbezahlt"],["unbezahlt","warn","unbezahlt"],["entwurf","warn","Entwurf"]].forEach(t=>{
+            if(r.z[t[0]]) teile.push('<span class="pill '+t[1]+'">'+(einzeln?t[2]:r.z[t[0]]+' '+t[2])+'</span>');});
+          if(nOff) teile.push('<span class="pill warn">'+(einzeln?'nicht abgerechnet':nOff+' nicht abgerechnet')+'</span>');
+        }
+        zelle=teile.join(' ')+nr;
+        if(r.ab&&r.z.bezahlt!==r.anz&&r.billEur>0) zelle+=' <small style="color:var(--muted)">'+eur.format(r.paidEur)+' von '+eur.format(r.billEur)+' bezahlt</small>';
+        if(nOff&&r.ab) zelle+=' <small style="color:var(--muted)">'+eur.format(r.offEur)+' nicht abgerechnet</small>';
+      }
+      return '<tr'+(st&&r.z.bezahlt===r.anz?' style="opacity:.7"':'')+'><td>'+esc(r.monat)+'</td><td>'+esc(r.agb)+'</td>'+
         '<td class="num">'+fmtClock(r.sec)+' <small style="color:var(--muted)">('+nf2.format(hours(r.sec))+')</small></td>'+
         '<td class="num">'+eur.format(r.satz)+'</td><td class="num">'+eur2.format(hours(r.sec)*r.satz)+'</td>'+
         '<td>'+zelle+'</td></tr>';
@@ -2323,11 +2374,14 @@ let rbMerker = null;
 function rechnungsZelle(e){
   if (rbMerker === null) rbMerker = rbStand();
   if (!rbMerker) return '<span style="color:var(--muted-2)" title="Kein Rechnungsbuch auf diesem Gerät gefunden.">–</span>';
-  const k = buchungsSchluessel(e).find(x => rbMerker.karte[x]);
-  if (!k) return '<span class="pill warn" style="font-size:10.5px">offen</span>';
-  const nr = rbMerker.nummer[rbMerker.karte[k]] || 'Entwurf';
-  return '<span class="pill ok" style="font-size:10.5px" title="Steht auf Rechnung ' + esc(nr) + '">'
-       + esc(nr) + '</span>';
+  const m = buchungRechnung(e, rbMerker);
+  if (!m) return '<span class="pill warn" style="font-size:10.5px" title="Steht auf keiner Rechnung.">nicht abgerechnet</span>';
+  const i = m.info, zs = ZSTAT[i.state] || ZSTAT.unbezahlt;
+  const txt = i.state==='entwurf' ? 'Entwurf' : esc(i.nummer) + ' · ' + zs[1];
+  const tip = 'Rechnung ' + esc(i.nummer) + ': ' + zs[1]
+    + (i.brutto ? ' (' + eur2.format(i.bezahlt) + ' von ' + eur2.format(i.brutto) + ' bezahlt)' : '')
+    + (m.via === 'zeitraum' ? ' – zugeordnet über Auftrag und Leistungszeitraum' : '');
+  return '<span class="pill ' + zs[0] + '" style="font-size:10.5px" title="' + tip + '">' + txt + '</span>';
 }
 function tableFoot(rows){const t=sumOf(rows);const b='font-weight:700;border-top:2px solid var(--line)';
   return '<tfoot><tr><td colspan="3" style="'+b+'">Summe ('+t.n+' Buchung'+(t.n===1?"":"en")+')</td>'+
