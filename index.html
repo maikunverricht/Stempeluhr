@@ -573,6 +573,34 @@ html[data-theme="light"]{
 @media (prefers-reduced-motion:reduce){.uhr-ball .btn-main.running{animation:none}}
 .clock-card:has(#toggle.running) .state::before{background:var(--danger);box-shadow:0 0 0 4px color-mix(in srgb,var(--danger) 20%,transparent)}
 
+
+/* Pause sitzt als kleiner Trabant am Ball: unten rechts auf dem Ring.
+   Der Ball bleibt Start/Stopp. In der Pause steht der Ball still und wird matter. */
+#pauseBtn{position:absolute;right:6px;bottom:6px;width:48px;height:48px;padding:0;border-radius:50%;
+  font-size:0;cursor:pointer;display:grid;place-items:center;
+  background:var(--surface);color:var(--text);border:1px solid var(--line-strong);
+  box-shadow:0 8px 18px -10px rgba(0,0,0,.45);transition:transform .15s,border-color .2s}
+#pauseBtn:hover{transform:scale(1.07);border-color:var(--accent)}
+#pauseBtn:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+#pauseBtn::before{content:"";width:12px;height:14px;
+  background:linear-gradient(90deg,currentColor 0 4px,transparent 4px 8px,currentColor 8px 12px)}
+#pauseBtn[data-z="weiter"]::before{width:0;height:0;background:none;
+  border-left:13px solid var(--accent);border-top:8px solid transparent;border-bottom:8px solid transparent;transform:translateX(2px)}
+#pauseBtn[data-z="weiter"]{border-color:var(--accent)}
+.clock-card:has(#pauseBtn[data-z="weiter"]) .uhr-ball .btn-main{animation:none;opacity:.62}
+.clock-card:has(#pauseBtn[data-z="weiter"]) .state::before{background:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 22%,transparent)}
+
+/* ---------- Stundenzettel ---------- */
+.sz-kopf{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.sz-kopf select{padding:5px 8px}
+.sz-kopf .sz-sum{margin-left:auto}
+#szView table td.sz-tag{white-space:nowrap;font-variant-numeric:tabular-nums}
+#szView tr.sz-neu td{border-top:1px solid var(--line-strong)}
+#szView tr.sz-folge td.sz-tag{color:transparent}
+#szView tfoot td{font-weight:700;border-top:2px solid var(--line)}
+#szView .sz-wo{color:var(--muted-2);font-family:var(--mono);font-size:10.5px;margin-right:6px;text-transform:uppercase}
+.mo-sz{padding:3px 9px;font-size:11.5px;white-space:nowrap}
+
 /* ═══ Rahmen wie in den übrigen Werkzeugen ═══ */
 .mark{display:inline-flex;align-items:center;justify-content:center;width:21px;height:21px;
   flex:none;color:var(--text)}
@@ -654,6 +682,7 @@ footer.site .pill.sm{height:30px;padding:0 11px;font-size:13px;font-family:var(-
         <circle class="ring-prog" id="ring" cx="150" cy="150" r="132"></circle>
       </svg>
       <button class="btn-main" id="toggle">Start</button>
+      <button type="button" id="pauseBtn" style="display:none" aria-label="Pause" title="Pause">Pause</button>
     </div>
     <div class="uhr-digital">
       <div class="state" id="state">Bereit</div>
@@ -661,7 +690,6 @@ footer.site .pill.sm{height:30px;padding:0 11px;font-size:13px;font-family:var(-
       <div class="live-meta" id="liveMeta">Noch keine laufende Erfassung</div>
     </div>
     <div class="uhr-ctl">
-      <button class="ghost" id="pauseBtn" style="display:none">Pause</button>
       <div class="clock-ctrl">
         <span>Rundung auf</span>
         <select class="ghost" id="rounding" style="padding:4px 8px">
@@ -688,6 +716,16 @@ footer.site .pill.sm{height:30px;padding:0 11px;font-size:13px;font-family:var(-
     </div>
     <div class="panel"><h2 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Monatsübersicht <a href="https://maikunverricht.github.io/Rechnungsbuch/" class="pill" style="font-weight:500;text-decoration:none">Rechnungsbuch ↗</a><span class="pill" id="invSummary" style="font-weight:500"></span><label style="margin-left:auto;font-size:12px;font-weight:500;display:flex;align-items:center;gap:6px;white-space:nowrap"><input type="checkbox" id="onlyOpenInv" style="width:auto">nur nicht abgerechnete</label></h2><div id="monatsuebersicht"></div></div>
     <div class="panel" id="kontoPanel" hidden><h2 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Stundenkonto <span class="pill" style="font-weight:500">Auszahlungsgrenze</span></h2><div id="kontoView"></div></div>
+    <div class="panel" id="szPanel"><h2>Stundenzettel</h2>
+      <div class="sz-kopf">
+        <select class="ghost" id="szMonth" aria-label="Monat"></select>
+        <select class="ghost" id="szAgb" aria-label="Auftraggeber"></select>
+        <select class="ghost" id="szAuf" aria-label="Auftrag"></select>
+        <span class="pill sz-sum" id="szSum"></span>
+        <button class="btn-primary" type="button" id="szPdf">PDF erstellen</button>
+      </div>
+      <div id="szView" style="overflow-x:auto"></div>
+    </div>
     <div class="panel">
       <div class="toolbar">
         <h2 style="margin:0;flex:1">Buchungen</h2>
@@ -763,21 +801,22 @@ footer.site .pill.sm{height:30px;padding:0 11px;font-size:13px;font-family:var(-
 <!-- PDF-Export-Dialog -->
 <div class="overlay" id="pdfOverlay">
   <div class="modal">
-    <h3>PDF-Export</h3>
-    <p>Stundennachweis als PDF.</p>
+    <h3>Stundenzettel als PDF</h3>
+    <p>Ein Monat, ein Auftraggeber – mit Beginn, Ende, Pause und Tätigkeit je Buchung.</p>
     <div class="field"><label>Monat</label><select id="pdfMonth"></select></div>
     <div class="field"><label>Auftraggeber</label><select id="pdfAgb"></select></div>
+    <div class="field"><label>Auftrag</label><select id="pdfAuf"></select></div>
     <div class="field"><label>Name des Bearbeiters</label><input id="pdfBearb" placeholder="z. B. Regina"></div>
-    <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px"><input type="checkbox" id="pdfNotes" checked style="width:auto">Notizen einbeziehen</label>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px"><input type="checkbox" id="pdfNotes" checked style="width:auto">Tätigkeit (Notiz) einbeziehen</label>
     <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px"><input type="checkbox" id="pdfAmount" checked style="width:auto">Betrag anzeigen</label>
-    <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:13px"><input type="checkbox" id="pdfSubtotals" checked style="width:auto">Zwischensumme je Auftrag</label>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:13px"><input type="checkbox" id="pdfSubtotals" checked style="width:auto">Übersicht je Auftrag</label>
     <details>
       <summary>Briefkopf, Logo &amp; Unterschrift</summary>
       <div class="field" style="margin-top:12px"><label>Briefkopf (mehrzeilig)</label><textarea id="pdfHeader" placeholder="Firma&#10;Straße&#10;PLZ Ort"></textarea></div>
       <div class="field"><label>Logo (Bild)</label><input type="file" id="pdfLogo" accept="image/*"><div class="hint" id="pdfLogoInfo">Kein Logo gewählt</div></div>
       <label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="pdfSign" style="width:auto">Unterschriftszeile anfügen</label>
     </details>
-    <div class="field"><label>Dateiname</label><input id="pdfName" placeholder="Dateiname"><div class="hint">Vorgabe: Jahr-Monat_Bearbeiter_Auftraggeber</div></div>
+    <div class="field"><label>Dateiname</label><input id="pdfName" placeholder="Dateiname"><div class="hint">Vorgabe: Stundenzettel_Jahr-Monat_Auftraggeber_Bearbeiter</div></div>
     <div class="modal-actions">
       <button class="discard" id="pdfCancel">Abbrechen</button>
       <button class="save" id="pdfGo">PDF erstellen</button>
@@ -2009,9 +2048,9 @@ function persistRun(){if(clock.running)localStorage.setItem(RUN_KEY,JSON.stringi
   zeitenSpiegeln();WB.melden("uhr",{aktiv:!!clock.running,pausiert:!!clock.paused});}
 function currentElapsed(){return clock.accumSec+(clock.segStart?(Date.now()-clock.segStart)/1000:0);}
 function uiRunning(){$("toggle").textContent="Stopp";$("toggle").classList.add("running");$("state").textContent="Läuft";
-  $("pauseBtn").style.display="";$("pauseBtn").textContent="Pause";}
+  $("pauseBtn").style.display="";$("pauseBtn").textContent="Pause";$("pauseBtn").dataset.z="pause";$("pauseBtn").title="Pause";$("pauseBtn").setAttribute("aria-label","Pause");}
 function uiPaused(){$("toggle").textContent="Stopp";$("toggle").classList.add("running");$("state").textContent="Pausiert";
-  $("pauseBtn").style.display="";$("pauseBtn").textContent="Weiter";}
+  $("pauseBtn").style.display="";$("pauseBtn").textContent="Weiter";$("pauseBtn").dataset.z="weiter";$("pauseBtn").title="Weiter";$("pauseBtn").setAttribute("aria-label","Weiter");}
 function uiIdle(){$("toggle").textContent="Start";$("toggle").classList.remove("running");$("state").textContent="Bereit";
   $("pauseBtn").style.display="none";$("time").textContent="00:00";$("sec").textContent="00";ring.style.strokeDashoffset=C;
   $("liveMeta").textContent="Noch keine laufende Erfassung";document.title=TITEL0;}
@@ -2360,7 +2399,7 @@ function renderMonat(){
 
   $("monatsuebersicht").innerHTML='<table><thead><tr><th>Monat</th><th>Auftraggeber</th>'+
     '<th class="num">Stunden</th><th class="num">Satz</th><th class="num">Betrag</th>'+
-    '<th>Abrechnung / Zahlung</th></tr></thead><tbody>'+
+    '<th>Abrechnung / Zahlung</th><th></th></tr></thead><tbody>'+
     rows.map(r=>{
       let zelle;
       if(!st) zelle='<span style="color:var(--muted-2)" title="Auf diesem Gerät wurde kein Rechnungsbuch gefunden.">–</span>';
@@ -2381,7 +2420,7 @@ function renderMonat(){
       return '<tr'+(st&&r.z.bezahlt===r.anz?' style="opacity:.7"':'')+'><td>'+esc(r.monat)+'</td><td>'+esc(r.agb)+'</td>'+
         '<td class="num">'+fmtClock(r.sec)+' <small style="color:var(--muted)">('+nf2.format(hours(r.sec))+')</small></td>'+
         '<td class="num">'+eur.format(r.satz)+'</td><td class="num">'+eur2.format(hours(r.sec)*r.satz)+'</td>'+
-        '<td>'+zelle+'</td></tr>';
+        '<td>'+zelle+'</td><td><button class="ghost mo-sz" type="button" data-sz="'+esc(r.ym)+'" data-agb="'+esc(r.agb)+'" title="Stundenzettel für diesen Monat als PDF">Stundenzettel</button></td></tr>';
     }).join("")+'</tbody></table>'+hinweis;
   altVerdrahten();
 }
@@ -2422,7 +2461,7 @@ function render(){const totalSec=entries.reduce((s,e)=>s+e.dur,0),totalEur=entri
   const today=new Date();today.setHours(0,0,0,0);const todaySec=entries.filter(e=>e.start>=today.getTime()).reduce((s,e)=>s+e.dur,0);
   $("s-total").textContent=nf2.format(hours(totalSec));$("s-eur").textContent=eur.format(totalEur);$("s-today").textContent=nf2.format(hours(todaySec));
   renderBars($("byAuftraggeber"),groupSum("auftraggeber"),true);renderBars($("byAuftrag"),groupSum("auftrag"),false);
-  renderWeek();renderYear();renderMonat();renderKonto();
+  renderWeek();renderYear();renderMonat();renderKonto();renderSZ();
   const sel=$("filterAuftraggeber"),cur=sel.value;const agb=[...new Set(entries.map(e=>e.auftraggeber))];
   sel.innerHTML='<option value="">Alle Auftraggeber</option>'+agb.map(a=>'<option value="'+esc(a)+'">'+esc(a)+'</option>').join("");sel.value=cur;
   renderTable();updateWarn();}
@@ -2584,77 +2623,211 @@ $("exportCsv").addEventListener("click",()=>{if(!entries.length)return;const row
 function monthKey(ts){const d=dt(ts);return d.getFullYear()+"-"+two(d.getMonth()+1);}
 function monthLabel(key){if(!key)return"Alle Monate";const p=key.split("-").map(Number);return new Date(p[0],p[1]-1,1).toLocaleDateString("de-DE",{month:"long",year:"numeric"});}
 function pdfBuildName(){const mk=$("pdfMonth").value,barb=$("pdfBearb").value.trim(),agb=$("pdfAgb").value;
-  $("pdfName").value=(mk||"AlleMonate")+"_"+(barb||"Bearbeiter")+"_"+(agb||"Alle");}
+  $("pdfName").value="Stundenzettel_"+(mk||"AlleMonate")+"_"+(agb||"Alle")+(barb?"_"+barb:"");}
 function pdfFillAgb(){const mk=$("pdfMonth").value;const list=[...new Set(entries.filter(e=>!mk||monthKey(e.start)===mk).map(e=>e.auftraggeber))].sort();
   $("pdfAgb").innerHTML=list.map(a=>'<option value="'+esc(a)+'">'+esc(a)+'</option>').join("")+'<option value="">Alle Auftraggeber</option>';}
-$("exportPdf").addEventListener("click",()=>{
+function pdfFillAuf(){const mk=$("pdfMonth").value,agb=$("pdfAgb").value;
+  const list=[...new Set(entries.filter(e=>(!mk||monthKey(e.start)===mk)&&(!agb||e.auftraggeber===agb)).map(e=>e.auftrag))].sort();
+  $("pdfAuf").innerHTML='<option value="">Alle Aufträge</option>'+list.map(a=>'<option value="'+esc(a)+'">'+esc(a)+'</option>').join("");}
+function openPdfDlg(mk,agb,auf){
   if(!entries.length){alert("Noch keine Buchungen vorhanden.");return;}
   const months=[...new Set(entries.map(e=>monthKey(e.start)))].sort().reverse();
   $("pdfMonth").innerHTML=months.map(m=>'<option value="'+m+'">'+esc(monthLabel(m))+'</option>').join("")+'<option value="">Alle Monate</option>';
+  if(mk!=null&&months.includes(mk))$("pdfMonth").value=mk;
   $("pdfBearb").value=localStorage.getItem(B_KEY)||"";
-  $("pdfHeader").value=settings.pdfHeader||"";$("pdfSign").checked=!!settings.pdfSign;
+  $("pdfHeader").value=settings.pdfHeader||"";$("pdfSign").checked=settings.pdfSign!==false;
   $("pdfLogoInfo").textContent=settings.pdfLogo?"Logo gespeichert (zum Ersetzen neu wählen)":"Kein Logo gewählt";
-  pdfFillAgb();pdfBuildName();$("pdfOverlay").classList.add("open");
-});
-$("pdfMonth").addEventListener("change",()=>{pdfFillAgb();pdfBuildName();});
+  pdfFillAgb();if(agb!=null)$("pdfAgb").value=agb;
+  pdfFillAuf();if(auf)$("pdfAuf").value=auf;
+  pdfBuildName();$("pdfOverlay").classList.add("open");
+}
+$("exportPdf").addEventListener("click",()=>openPdfDlg(null,null,null));
+$("monatsuebersicht").addEventListener("click",ev=>{const b=ev.target.closest("[data-sz]");if(!b)return;openPdfDlg(b.dataset.sz,b.dataset.agb,"");});
+$("pdfAgb").addEventListener("change",pdfFillAuf);
+$("pdfMonth").addEventListener("change",()=>{pdfFillAgb();pdfFillAuf();pdfBuildName();});
 $("pdfAgb").addEventListener("change",pdfBuildName);
 $("pdfBearb").addEventListener("input",pdfBuildName);
 $("pdfLogo").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
   r.onload=()=>{settings.pdfLogo=r.result;saveSettings();$("pdfLogoInfo").textContent="Logo gespeichert: "+f.name;};r.readAsDataURL(f);});
 $("pdfCancel").addEventListener("click",()=>$("pdfOverlay").classList.remove("open"));
 function imgFmt(d){const m=/^data:image\/(\w+)/.exec(d);return m?m[1].toUpperCase():"PNG";}
+/* ═══════ Stundenzettel ═══════
+   Eine Quelle für Ansicht und PDF: die Buchungen eines Monats, je
+   Auftraggeber und wahlweise je Auftrag. Pause = Spanne Beginn–Ende
+   minus gebuchte Dauer (so entsteht sie beim Pausieren der Uhr). */
+function szZeilen(mk,agb,auf){
+  return entries.filter(e=>(!mk||monthKey(e.start)===mk)&&(!agb||e.auftraggeber===agb)&&(!auf||e.auftrag===auf))
+    .sort((a,b)=>a.start-b.start).map(e=>{
+      const s0=dt(e.start),endTs=e.end||e.start+e.dur*1000,spanne=(endTs-e.start)/1000;
+      return {e:e,tag:s0.getFullYear()+"-"+two(s0.getMonth()+1)+"-"+two(s0.getDate()),d:s0,
+        beginn:s0.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}),
+        ende:dt(endTs).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}),
+        pause:Math.max(0,Math.round(spanne-e.dur)),sec:e.dur,eur:hours(e.dur)*(e.satz||60)};});
+}
+const WTAG=["So","Mo","Di","Mi","Do","Fr","Sa"];
+function hm(sec){const m=Math.round(sec/60);return Math.floor(m/60)+":"+two(m%60);}
+function szSumme(z){const tage=new Set(z.map(x=>x.tag));
+  return {sec:z.reduce((a,x)=>a+x.sec,0),eur:z.reduce((a,x)=>a+x.eur,0),pause:z.reduce((a,x)=>a+x.pause,0),tage:tage.size,n:z.length};}
+function renderSZ(){
+  const mS=$("szMonth"),gS=$("szAgb"),aS=$("szAuf");if(!mS)return;
+  const months=[...new Set(entries.map(e=>monthKey(e.start)))].sort().reverse();
+  if(!months.length){mS.innerHTML="";gS.innerHTML="";aS.innerHTML="";$("szSum").textContent="";
+    $("szView").innerHTML='<div class="empty">Noch keine Buchungen.</div>';return;}
+  const mk=months.includes(mS.value)?mS.value:months[0];
+  mS.innerHTML=months.map(m=>'<option value="'+m+'"'+(m===mk?" selected":"")+'>'+esc(monthLabel(m))+'</option>').join("");
+  const agbs=[...new Set(entries.filter(e=>monthKey(e.start)===mk).map(e=>e.auftraggeber))].sort();
+  const agb=agbs.includes(gS.value)?gS.value:(gS.value===""&&gS.options.length?"":agbs[0]);
+  gS.innerHTML=agbs.map(a=>'<option value="'+esc(a)+'">'+esc(a)+'</option>').join("")+'<option value="">Alle Auftraggeber</option>';gS.value=agb;
+  const aufs=[...new Set(entries.filter(e=>monthKey(e.start)===mk&&(!agb||e.auftraggeber===agb)).map(e=>e.auftrag))].sort();
+  const auf=aufs.includes(aS.value)?aS.value:"";
+  aS.innerHTML='<option value="">Alle Aufträge</option>'+aufs.map(a=>'<option value="'+esc(a)+'">'+esc(a)+'</option>').join("");aS.value=auf;
+  const z=szZeilen(mk,agb,auf),t=szSumme(z);
+  $("szSum").textContent=t.tage+" Tag"+(t.tage===1?"":"e")+" · "+hm(t.sec)+" h ("+nf2.format(hours(t.sec))+")";
+  $("szSum").className="pill "+(t.n?"ok":"");
+  if(!z.length){$("szView").innerHTML='<div class="empty">Keine Buchungen für diese Auswahl.</div>';return;}
+  const mehrAuf=new Set(z.map(x=>x.e.auftrag)).size>1, mehrAgb=!agb;
+  let vor="";
+  $("szView").innerHTML='<table><thead><tr><th>Datum</th><th class="num">Beginn</th><th class="num">Ende</th><th class="num">Pause</th><th class="num">Stunden</th>'+
+    (mehrAgb?'<th>Auftraggeber</th>':'')+(mehrAuf?'<th>Auftrag</th>':'')+'<th>Tätigkeit</th></tr></thead><tbody>'+
+    z.map(x=>{const neu=x.tag!==vor;vor=x.tag;
+      return '<tr class="'+(neu?"sz-neu":"sz-folge")+'"><td class="sz-tag"><span class="sz-wo">'+WTAG[x.d.getDay()]+'</span>'+
+        x.d.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"})+'</td>'+
+        '<td class="num">'+x.beginn+'</td><td class="num">'+x.ende+'</td><td class="num">'+(x.pause>=60?hm(x.pause):"–")+'</td>'+
+        '<td class="num">'+hm(x.sec)+' <small style="color:var(--muted)">('+nf2.format(hours(x.sec))+')</small></td>'+
+        (mehrAgb?'<td>'+esc(x.e.auftraggeber)+'</td>':'')+(mehrAuf?'<td>'+esc(x.e.auftrag)+'</td>':'')+
+        '<td>'+esc(x.e.notiz||"")+'</td></tr>';}).join("")+
+    '</tbody><tfoot><tr><td>'+t.tage+' Arbeitstag'+(t.tage===1?'':'e')+'</td><td></td><td></td><td class="num">'+(t.pause>=60?hm(t.pause):"–")+'</td>'+
+    '<td class="num">'+hm(t.sec)+' <small>('+nf2.format(hours(t.sec))+')</small></td><td colspan="'+(1+(mehrAgb?1:0)+(mehrAuf?1:0))+'">'+eur2.format(t.eur)+'</td></tr></tfoot></table>';
+}
+["szMonth","szAgb","szAuf"].forEach(id=>{const el=$(id);if(el)el.addEventListener("change",()=>{if(id==="szMonth"){$("szAgb").selectedIndex=0;$("szAuf").value="";}if(id==="szAgb")$("szAuf").value="";renderSZ();});});
+$("szPdf").addEventListener("click",()=>openPdfDlg($("szMonth").value,$("szAgb").value,$("szAuf").value));
+
+/* PDF im Stil eines ordentlichen Stundenzettels. Gibt das jsPDF-Dokument zurück. */
+function szPdf(o){
+  const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:"mm",format:"a4"});
+  const L=18,R=192,W=R-L,GOLD=[176,118,22],INK=[24,30,40],GRAU=[110,118,130],LINIE=[205,210,218];
+  const z=szZeilen(o.mk,o.agb,o.auf),t=szSumme(z);
+  const mehrAuf=new Set(z.map(x=>x.e.auftrag)).size>1, mehrAgb=!o.agb;
+  const ink=()=>doc.setTextColor(INK[0],INK[1],INK[2]), grau=()=>doc.setTextColor(GRAU[0],GRAU[1],GRAU[2]);
+  let y=16;
+  /* Kopf: Briefkopf links, Logo rechts */
+  if(settings.pdfLogo){try{doc.addImage(settings.pdfLogo,imgFmt(settings.pdfLogo),R-38,y-4,38,17);}catch(e){}}
+  if(o.kopf){doc.setFont("helvetica","normal");doc.setFontSize(8.5);grau();
+    o.kopf.split("\n").slice(0,6).forEach((ln,i)=>doc.text(ln,L,y+i*3.8));y+=Math.min(6,o.kopf.split("\n").length)*3.8+2;}
+  y=Math.max(y,settings.pdfLogo?30:y)+4;
+  /* Titel */
+  doc.setFont("helvetica","bold");doc.setFontSize(20);ink();doc.text("Stundenzettel",L,y);
+  doc.setFontSize(12);doc.setTextColor(GOLD[0],GOLD[1],GOLD[2]);doc.text(monthLabel(o.mk),R,y,{align:"right"});
+  y+=3;doc.setDrawColor(GOLD[0],GOLD[1],GOLD[2]);doc.setLineWidth(.6);doc.line(L,y,R,y);doc.setLineWidth(.2);y+=8;
+  /* Angaben in zwei Spalten */
+  let von="",bis="";
+  if(o.mk){const p=o.mk.split("-").map(Number);const f={day:"2-digit",month:"2-digit",year:"numeric"};von=new Date(p[0],p[1]-1,1).toLocaleDateString("de-DE",f);bis=new Date(p[0],p[1],0).toLocaleDateString("de-DE",f);}
+  else if(z.length){von=z[0].d.toLocaleDateString("de-DE");bis=z[z.length-1].d.toLocaleDateString("de-DE");}
+  const aufObj=o.auf?master.auftraege.find(a=>a.titel===o.auf&&(!o.agb||a.agb===o.agb)):null;
+  const angaben=[["Auftraggeber",o.agb||"Alle"],["Bearbeiter",o.bearb||"–"],
+    ["Auftrag",o.auf||(mehrAuf?"mehrere (siehe Tabelle)":(z[0]?z[0].e.auftrag:"–"))],["Zeitraum",von+" - "+bis]];
+  if(aufObj&&aufObj.projektnummer)angaben.push(["Projektnummer",aufObj.projektnummer]);
+  const sp=W/2;
+  angaben.forEach((a,i)=>{const x=L+(i%2)*sp,yy=y+Math.floor(i/2)*11;
+    doc.setFont("helvetica","normal");doc.setFontSize(7);grau();doc.text(a[0].toUpperCase(),x,yy);
+    doc.setFontSize(10.5);ink();doc.text(doc.splitTextToSize(String(a[1]),sp-6)[0],x,yy+4.6);});
+  y+=Math.ceil(angaben.length/2)*11+3;
+  /* Tabelle */
+  const cols=[{k:"datum",t:"Datum",w:22},{k:"beginn",t:"Beginn",w:14,r:1},{k:"ende",t:"Ende",w:14,r:1},
+    {k:"pause",t:"Pause",w:14,r:1},{k:"std",t:"Stunden",w:17,r:1}];
+  const bw=o.notes?(mehrAgb?48:38):60;
+  if(mehrAgb)cols.push({k:"agb",t:"Auftraggeber / Auftrag",w:bw});
+  else if(mehrAuf)cols.push({k:"auf",t:"Auftrag",w:bw});
+  if(o.notes)cols.push({k:"notiz",t:"Tätigkeit",w:0});
+  const fest=cols.reduce((a,c)=>a+c.w,0);cols.forEach(c=>{if(!c.w)c.w=W-fest;});
+  if(!o.notes){const rest=W-fest;cols[cols.length-1].w+=rest;}
+  let x0=L;cols.forEach(c=>{c.x=x0;x0+=c.w;});
+  const pad=2;
+  function kopfzeile(){doc.setFillColor(238,240,244);doc.rect(L,y-4.2,W,6.6,"F");
+    doc.setFont("helvetica","bold");doc.setFontSize(8);grau();
+    cols.forEach(c=>doc.text(c.t.toUpperCase(),c.r?c.x+c.w-pad:c.x+pad,y,{align:c.r?"right":"left"}));y+=6;}
+  const UNTEN=272;
+  function platz(h){if(y+h>UNTEN){doc.addPage();y=20;kopfzeile();return true;}return false;}
+  kopfzeile();
+  let vor="",zebra=false;
+  doc.setFontSize(9);
+  z.forEach(x=>{
+    const neu=x.tag!==vor;doc.setFont("helvetica","normal");doc.setFontSize(9);
+    const nl=o.notes?doc.splitTextToSize(String(x.e.notiz||""),cols[cols.length-1].w-2*pad):[];
+    const aufL=(mehrAuf&&!mehrAgb)?doc.splitTextToSize(String(x.e.auftrag||""),bw-2*pad):[];
+    const agbL=mehrAgb?doc.splitTextToSize(String(x.e.auftraggeber||"")+" · "+String(x.e.auftrag||""),bw-2*pad):[];
+    const h=Math.max(6,4.2*Math.max(nl.length,aufL.length,agbL.length,1)+1.8);
+    const umbruch=platz(h);
+    doc.setFont("helvetica","normal");doc.setFontSize(9);
+    if(neu){zebra=!zebra;vor=x.tag;}
+    if(zebra){doc.setFillColor(248,249,251);doc.rect(L,y-4.2,W,h,"F");}
+    if(neu&&!umbruch){doc.setDrawColor(LINIE[0],LINIE[1],LINIE[2]);doc.line(L,y-4.2,R,y-4.2);}
+    doc.setFont("helvetica","normal");ink();
+    const v={datum:(neu||umbruch)?WTAG[x.d.getDay()]+" "+x.d.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"}):"",
+      beginn:x.beginn,ende:x.ende,pause:x.pause>=60?hm(x.pause):"-",std:nf2.format(hours(x.sec))};
+    cols.forEach(c=>{
+      if(c.k==="notiz"){if(nl.length)doc.text(nl,c.x+pad,y);return;}
+      if(c.k==="auf"){doc.text(aufL,c.x+pad,y);return;}
+      if(c.k==="agb"){doc.text(agbL,c.x+pad,y);return;}
+      if(c.k==="std")doc.setFont("helvetica","bold");
+      doc.text(String(v[c.k]),c.r?c.x+c.w-pad:c.x+pad,y,{align:c.r?"right":"left"});
+      doc.setFont("helvetica","normal");});
+    y+=h;});
+  doc.setDrawColor(INK[0],INK[1],INK[2]);doc.setLineWidth(.4);platz(8);doc.line(L,y-4.2,R,y-4.2);doc.setLineWidth(.2);
+  /* Summenzeile direkt unter der Tabelle */
+  doc.setFont("helvetica","bold");doc.setFontSize(9.5);ink();
+  doc.text("Summe",L+pad,y);
+  const cp=cols.find(c=>c.k==="pause"),cs=cols.find(c=>c.k==="std");
+  doc.text(t.pause>=60?hm(t.pause):"-",cp.x+cp.w-pad,y,{align:"right"});
+  doc.text(nf2.format(hours(t.sec)),cs.x+cs.w-pad,y,{align:"right"});
+  y+=10;
+  /* Zusammenfassung */
+  const zeilen=[["Arbeitszeit gesamt",nf2.format(hours(t.sec))+" h  ("+hm(t.sec)+" Std.)"],["Arbeitstage",String(t.tage)],
+    ["Buchungen",String(t.n)]];
+  if(t.pause>=60)zeilen.push(["Pausen gesamt",hm(t.pause)+" Std."]);
+  const satzSet=[...new Set(z.map(x=>x.e.satz||60))];
+  if(o.amount){if(satzSet.length===1)zeilen.push(["Stundensatz",nf2.format(satzSet[0])+" EUR"]);
+    zeilen.push(["Betrag (netto)",nf2.format(t.eur)+" EUR"]);}
+  const boxH=zeilen.length*6+3;platz(boxH+4);
+  const bx=R-86;doc.setFillColor(250,246,236);doc.setDrawColor(GOLD[0],GOLD[1],GOLD[2]);doc.roundedRect(bx,y-5,86,boxH,2,2,"FD");
+  let yy=y+1.5;zeilen.forEach((r,i)=>{doc.setFont("helvetica",i===0?"bold":"normal");doc.setFontSize(i===0?10:9);
+    grau();doc.text(r[0],bx+4,yy);ink();doc.text(r[1],R-4,yy,{align:"right"});yy+=6;});
+  /* Übersicht je Auftrag links neben der Box */
+  if(o.sub&&mehrAuf){const g={};z.forEach(x=>{const k=x.e.auftrag;g[k]=g[k]||{sec:0,eur:0};g[k].sec+=x.sec;g[k].eur+=x.eur;});
+    let gy=y+1.5;doc.setFontSize(7);grau();doc.setFont("helvetica","normal");doc.text("JE AUFTRAG",L,gy-3.5);
+    doc.setFontSize(9);Object.keys(g).sort().forEach(k=>{ink();doc.text(doc.splitTextToSize(k,52)[0],L,gy+1.5);
+      doc.text(nf2.format(hours(g[k].sec))+" h",L+70,gy+1.5,{align:"right"});
+      if(o.amount){grau();doc.text(nf2.format(g[k].eur)+" EUR",L+92,gy+1.5,{align:"right"});}gy+=5.5;});}
+  y+=boxH+4;
+  /* Auszahlungsgrenze */
+  if(o.mk&&o.agb){const g=master.auftraggeber.find(x=>x.name===o.agb),k=g?kontoVon(g):null,m=k?k.monate.find(x=>x.ym===o.mk):null;
+    if(m&&m.grenze!=null){platz(30);doc.setFontSize(9);doc.setFont("helvetica","normal");ink();
+      doc.text("Auszahlungsgrenze: "+nf2.format(m.grenze)+" EUR ("+nf2.format(m.grenzeH)+" h)",L,y);y+=5;
+      if(m.vorher>1e-6){doc.text("Stundenkonto aus Vormonaten: "+nf2.format(m.vorher)+" h",L,y);y+=5;}
+      doc.setFont("helvetica","bold");doc.text("Auszuzahlen: "+nf2.format(m.ausH)+" h · "+nf2.format(m.ausEur)+" EUR",L,y);y+=5;
+      doc.setFont("helvetica","normal");doc.text("Stundenkonto nach diesem Monat: "+nf2.format(m.konto)+" h",L,y);y+=7;}}
+  /* Bestätigung */
+  if(o.sign){platz(34);y+=6;doc.setFontSize(8.5);grau();doc.setFont("helvetica","normal");
+    doc.text("Die oben aufgeführten Arbeitszeiten werden bestätigt.",L,y);y+=18;
+    doc.setDrawColor(150,155,165);doc.line(L,y,L+74,y);doc.line(R-74,y,R,y);y+=4.5;
+    doc.text("Ort, Datum, Unterschrift Auftragnehmer",L,y);doc.text("Ort, Datum, Unterschrift Auftraggeber",R-74,y);}
+  /* Fußzeile auf jeder Seite */
+  const n=doc.getNumberOfPages(),heute=new Date().toLocaleDateString("de-DE");
+  for(let i=1;i<=n;i++){doc.setPage(i);doc.setFontSize(7.5);doc.setFont("helvetica","normal");grau();
+    doc.setDrawColor(LINIE[0],LINIE[1],LINIE[2]);doc.line(L,283,R,283);
+    doc.text("Stundenzettel "+monthLabel(o.mk)+(o.agb?" · "+o.agb:"")+(o.bearb?" · "+o.bearb:""),L,287.5);
+    doc.text("erstellt am "+heute+"   ·   Seite "+i+" von "+n,R,287.5,{align:"right"});}
+  return doc;
+}
 $("pdfGo").addEventListener("click",()=>{
   if(!window.jspdf){alert("PDF-Bibliothek nicht geladen (Internetverbindung nötig).");return;}
-  const mk=$("pdfMonth").value,agb=$("pdfAgb").value,barb=$("pdfBearb").value.trim();
-  const incNotes=$("pdfNotes").checked,incAmount=$("pdfAmount").checked,incSub=$("pdfSubtotals").checked;
-  settings.pdfHeader=$("pdfHeader").value;settings.pdfSign=$("pdfSign").checked;saveSettings();localStorage.setItem(B_KEY,barb);
-  let rows=entries.filter(e=>(!mk||monthKey(e.start)===mk)&&(!agb||e.auftraggeber===agb)).sort((a,b)=>a.start-b.start);
-  if(!rows.length){alert("Keine Buchungen für diese Auswahl.");return;}
-  const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:"mm",format:"a4"});
-  const left=15,right=195,noteX=left+62;let y=18;
-  if(settings.pdfLogo){try{doc.addImage(settings.pdfLogo,imgFmt(settings.pdfLogo),right-40,y-4,32,18);}catch(e){}}
-  if(settings.pdfHeader){doc.setFontSize(9);doc.setFont(undefined,"normal");
-    settings.pdfHeader.split("\n").forEach((ln,i)=>doc.text(ln,left,y+i*4));y+=settings.pdfHeader.split("\n").length*4+4;}
-  doc.setFontSize(16);doc.setFont(undefined,"bold");doc.text("Stundennachweis",left,y+4);y+=13;
-  doc.setFontSize(11);doc.setFont(undefined,"normal");
-  doc.text("Zeitraum: "+monthLabel(mk),left,y);y+=6;
-  doc.text("Auftraggeber: "+(agb||"Alle"),left,y);y+=6;
-  if(barb){doc.text("Bearbeiter: "+barb,left,y);y+=6;}
-  y+=4;
-  function head(){doc.setFont(undefined,"bold");doc.setFontSize(10);
-    doc.text("Datum",left,y);doc.text("Stunden",left+34,y);if(incNotes)doc.text("Notiz",noteX,y);
-    doc.setDrawColor(170);doc.line(left,y+1.5,right,y+1.5);y+=6;doc.setFont(undefined,"normal");}
-  function ensure(sp){if(y+sp>285){doc.addPage();y=18;head();}}
-  head();
-  let gSec=0,gEur=0;
-  const groups={};rows.forEach(e=>{(groups[e.auftrag]=groups[e.auftrag]||[]).push(e);});
-  const gnames=Object.keys(groups).sort();
-  gnames.forEach(gn=>{
-    if(incSub&&gnames.length>1){ensure(8);doc.setFont(undefined,"bold");doc.text("Auftrag: "+gn,left,y);y+=5;doc.setFont(undefined,"normal");}
-    let sSec=0,sEur=0;
-    groups[gn].forEach(e=>{const dstr=dt(e.start).toLocaleDateString("de-DE");const h=nf2.format(hours(e.dur))+" h";
-      gSec+=e.dur;gEur+=hours(e.dur)*(e.satz||60);sSec+=e.dur;sEur+=hours(e.dur)*(e.satz||60);
-      const nl=(incNotes&&e.notiz)?doc.splitTextToSize(e.notiz,right-noteX):[];const rowH=Math.max(6,nl.length*5);
-      ensure(rowH);doc.text(dstr,left,y);doc.text(h,left+34,y);if(nl.length)doc.text(nl,noteX,y);y+=rowH;});
-    if(incSub&&gnames.length>1){ensure(7);doc.setFont(undefined,"bold");
-      doc.text("Zwischensumme "+gn+": "+nf2.format(hours(sSec))+" h"+(incAmount?" · "+nf2.format(sEur)+" EUR":""),left,y);y+=8;doc.setFont(undefined,"normal");}
-  });
-  ensure(16);doc.setDrawColor(120);doc.line(left,y,right,y);y+=7;
-  doc.setFont(undefined,"bold");doc.text("Summe Stunden:",left,y);doc.text(nf2.format(hours(gSec))+" h",left+34,y);y+=6;
-  if(incAmount){doc.setFont(undefined,"normal");doc.text("Betrag: "+nf2.format(gEur)+" EUR",left,y);y+=6;}
-  /* Auszahlungsgrenze: was in diesem Monat ausgezahlt wird und was aufs Konto geht. */
-  if(mk&&agb){const g=master.auftraggeber.find(x=>x.name===agb),k=g?kontoVon(g):null,
-    m=k?k.monate.find(x=>x.ym===mk):null;
-    if(m&&m.grenze!=null){ensure(30);y+=3;doc.setFont(undefined,"normal");
-      doc.text("Auszahlungsgrenze: "+nf2.format(m.grenze)+" EUR ("+nf2.format(m.grenzeH)+" h)",left,y);y+=6;
-      if(m.vorher>1e-6){doc.text("Stundenkonto aus Vormonaten: "+nf2.format(m.vorher)+" h",left,y);y+=6;}
-      doc.setFont(undefined,"bold");
-      doc.text("Auszuzahlen: "+nf2.format(m.ausH)+" h · "+nf2.format(m.ausEur)+" EUR",left,y);y+=6;
-      doc.setFont(undefined,"normal");
-      doc.text("Stundenkonto nach diesem Monat: "+nf2.format(m.konto)+" h",left,y);y+=6;}}
-  if(settings.pdfSign){y+=16;ensure(20);doc.setDrawColor(150);doc.line(left,y,left+70,y);doc.line(right-70,y,right,y);y+=5;
-    doc.setFontSize(9);doc.setFont(undefined,"normal");doc.text("Datum, Unterschrift Bearbeiter",left,y);doc.text("Datum, Unterschrift Auftraggeber",right-70,y);}
-  let fname=($("pdfName").value.trim()||"Stundennachweis").replace(/[\\/:*?"<>|]/g,"-");
+  const o={mk:$("pdfMonth").value,agb:$("pdfAgb").value,auf:$("pdfAuf").value,bearb:$("pdfBearb").value.trim(),
+    notes:$("pdfNotes").checked,amount:$("pdfAmount").checked,sub:$("pdfSubtotals").checked,
+    kopf:$("pdfHeader").value,sign:$("pdfSign").checked};
+  settings.pdfHeader=o.kopf;settings.pdfSign=o.sign;saveSettings();localStorage.setItem(B_KEY,o.bearb);
+  if(!szZeilen(o.mk,o.agb,o.auf).length){alert("Keine Buchungen für diese Auswahl.");return;}
+  const doc=szPdf(o);
+  let fname=($("pdfName").value.trim()||"Stundenzettel").replace(/[\\/:*?"<>|]/g,"-");
   if(!/\.pdf$/i.test(fname))fname+=".pdf";
   doc.save(fname);$("pdfOverlay").classList.remove("open");
 });
