@@ -636,6 +636,157 @@ footer.site .pill.sm{height:30px;padding:0 11px;font-size:13px;font-family:var(-
 #dlgSrc footer{display:flex;padding:15px 20px;border-top:1px solid var(--line)}
 @media (max-width:760px){ .nav{padding-left:16px;padding-right:16px} body{padding-top:80px}
   footer.site{padding-left:16px;padding-right:16px} }
+
+/* ═══════ Bühne und Reiter (seit 21.11.2026) ═══════ */
+html,body{overflow-x:clip}
+.su{position:relative;z-index:2;max-width:1180px;margin:0 auto;padding:0 22px 40px}
+.nav-r .warnbanner{display:none;margin:0;width:auto;max-width:none;height:36px;padding:0 6px 0 12px;border-radius:999px;align-items:center;gap:8px;
+  font-size:13px;color:var(--text-2);background:color-mix(in srgb,var(--amber) 12%,transparent);border:1px solid color-mix(in srgb,var(--amber) 40%,transparent)}
+.nav-r .warnbanner.show{display:inline-flex}
+.nav-r .warnbanner::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--amber)}
+.nav-r .warnbanner b{color:var(--text);font-weight:600}
+.nav-r .warnbanner button{margin:0;height:26px;padding:0 9px;border-radius:999px;font-size:12px}
+.nav-r .warnbanner .wb-auf{cursor:pointer;background:none;border:0;padding:0;color:inherit;font:inherit}
+.nav-r #abChip{white-space:nowrap}
+
+.su-buehne{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:34px;align-items:center;padding:30px 0 6px}
+.su-orb-wrap{display:grid;place-items:center}
+.su-orb{--p:0;position:relative;width:min(420px,84vw);aspect-ratio:1;border-radius:50%;display:grid;place-items:center}
+.su-orb::before{content:"";position:absolute;inset:-12%;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,color-mix(in srgb,var(--amber) 30%,transparent),transparent 62%);filter:blur(28px);opacity:.3;transition:opacity .6s}
+.su-orb.laeuft::before{opacity:1;animation:suAtem 5s ease-in-out infinite}
+@keyframes suAtem{50%{opacity:.6;transform:scale(.94)}}
+.su-ring{position:absolute;inset:0;border-radius:50%;
+  background:conic-gradient(from 0deg,var(--amber) 0deg,var(--em-2) calc(var(--p)*300deg),var(--teal) calc(var(--p)*360deg),color-mix(in srgb,var(--text-3) 18%,transparent) calc(var(--p)*360deg + .5deg));
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 14px),#000 calc(100% - 13px));mask:radial-gradient(farthest-side,transparent calc(100% - 14px),#000 calc(100% - 13px))}
+.su-skala{position:absolute;inset:24px;border-radius:50%;background:repeating-conic-gradient(var(--line) 0 .6deg,transparent .6deg 15deg);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 10px),#000 calc(100% - 9px));mask:radial-gradient(farthest-side,transparent calc(100% - 10px),#000 calc(100% - 9px))}
+.su-skala.fein{inset:28px;opacity:.6;background:repeating-conic-gradient(var(--line) 0 .4deg,transparent .4deg 3deg);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px));mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px))}
+.su-kopf{position:absolute;inset:0;transform:rotate(calc(var(--p)*360deg));transition:transform 1s var(--kurve)}
+.su-kopf i{position:absolute;left:50%;top:-4px;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:#fff;box-shadow:0 0 0 5px color-mix(in srgb,var(--text-3) 35%,transparent)}
+.su-orb.laeuft .su-kopf i{box-shadow:0 0 0 6px color-mix(in srgb,var(--teal) 45%,transparent),0 0 28px 8px var(--teal)}
+.su-scheibe{position:absolute;inset:38px;border-radius:50%;background:var(--glass);border:1px solid var(--glass-edge);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),var(--shadow)}
+.su-scheibe::after{content:"";position:absolute;inset:0;border-radius:50%;background:linear-gradient(160deg,rgba(255,255,255,.13),transparent 42%);pointer-events:none}
+.su-alt{position:absolute;width:0;height:0;overflow:hidden}
+.su-orb-in{position:relative;z-index:1;text-align:center;padding:0 46px}
+.su-orb-in .state{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-3)}
+.su-orb-in .state::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--text-3)}
+.su-orb.laeuft .state{color:var(--teal)}
+.su-orb.laeuft .state::before{background:var(--red-ink);box-shadow:0 0 12px var(--red-ink);animation:suBlink 1.2s steps(2) infinite}
+.su-orb.pause .state{color:var(--amber)}.su-orb.pause .state::before{background:var(--amber);box-shadow:none;animation:none}
+@keyframes suBlink{50%{opacity:.25}}
+.su-orb-in .time{font-family:var(--mono);font-size:clamp(46px,5.8vw,68px);font-weight:500;letter-spacing:-.04em;line-height:1.05;margin:8px 0 4px;font-variant-numeric:tabular-nums;color:var(--text)}
+.su-orb-in .time .sec{font-size:.42em;color:var(--text-2);letter-spacing:0;margin-left:2px}
+.su-orb-in .time .sec::before{content:":"}
+.su-orb-in .live-meta{font-size:13px;color:var(--text-2);margin:0 0 18px;min-height:18px}
+.su-knoepfe{display:flex;gap:10px;justify-content:center;align-items:center}
+.su-knoepfe #toggle{width:auto;height:54px;min-width:128px;padding:0 26px;border-radius:999px;border:0;font-weight:700;font-size:16px;animation:none;
+  background:var(--amber);color:var(--on-accent,#12171F);box-shadow:0 12px 30px -10px color-mix(in srgb,var(--amber) 80%,transparent);transition:transform var(--t-s) var(--kurve),background var(--t-s)}
+.su-knoepfe #toggle:hover{transform:translateY(-2px) scale(1.03)}
+.su-knoepfe #toggle.running{background:var(--red-ink);color:#fff;box-shadow:0 12px 30px -10px color-mix(in srgb,var(--red-ink) 80%,transparent)}
+.su-knoepfe #toggle::before{content:"▶";font-size:13px;margin-right:9px}
+.su-knoepfe #toggle.running::before{content:"■"}
+.su-knoepfe #pauseBtn{position:static;width:auto;height:54px;padding:0 18px;border-radius:999px;border:1px solid var(--line-strong);background:var(--film);color:var(--text);font-size:14px;font-weight:600}
+
+.su-rechts .eyebrow{margin:0}
+.su-satz{margin:14px 0 22px;font-size:clamp(26px,3vw,38px);font-weight:600;font-variation-settings:"wdth" 112;letter-spacing:-.025em;line-height:1.12;color:var(--text-2);max-width:20ch}
+.su-satz b{color:var(--text);font-weight:800}
+.su-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.su-stat,.su-band{border-radius:20px;background:var(--glass);border:1px solid var(--glass-edge);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.su-stat{padding:14px 16px;min-width:0}
+.su-stat small{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.su-stat b{display:block;margin-top:6px;font-size:28px;font-weight:800;font-variation-settings:"wdth" 116;letter-spacing:-.02em;white-space:nowrap}
+.su-stat b i{font-style:normal;font-size:14px;font-weight:500;color:var(--text-2);margin-left:4px}
+.su-stat.geld b{color:var(--amber)}
+.su-band{margin-top:14px;padding:14px 16px 12px}
+.su-band-kopf{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);margin-bottom:10px}
+.su-spur{position:relative;height:34px;border-radius:10px;background:var(--film);overflow:hidden}
+.su-spur .blk{position:absolute;top:4px;bottom:4px;min-width:3px;border-radius:7px;background:linear-gradient(180deg,color-mix(in srgb,var(--c) 85%,#fff),var(--c));box-shadow:0 0 14px -4px var(--c)}
+.su-spur .blk.live{background:repeating-linear-gradient(135deg,var(--teal) 0 8px,color-mix(in srgb,var(--teal) 65%,#fff) 8px 16px);background-size:22.6px 22.6px;animation:suZieh 1s linear infinite}
+.su-spur .blk.live.pause{animation:none;opacity:.55}
+@keyframes suZieh{to{background-position:22.6px 0}}
+.su-spur .jetzt{position:absolute;top:0;bottom:0;width:2px;background:var(--red-ink);box-shadow:0 0 10px var(--red-ink)}
+.su-skal{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--text-3);margin-top:6px}
+
+.su-reiter{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:38px 0 16px;flex-wrap:wrap}
+.su-seg{display:flex;padding:4px;border-radius:999px;background:var(--glass);border:1px solid var(--glass-edge);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.su-seg button{height:38px;padding:0 18px;border-radius:999px;border:0;background:none;font-size:14px;color:var(--text-2);transition:background var(--t-s),color var(--t-s)}
+.su-seg button.an{background:var(--text);color:var(--void)}
+.su-reiter #addManual{height:40px;border-radius:999px;padding:0 18px}
+.su-ansicht{display:none}
+.su-ansicht.an{display:block;animation:suRein .45s var(--kurve)}
+@keyframes suRein{from{opacity:0;transform:translateY(10px)}}
+.su-ansicht > .panel,.su-ansicht > .grid2{margin-bottom:16px}
+.su-ansicht .panel h2.klappbar .chev{display:none}
+.su-gesamt{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.su-gesamt small{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3)}
+.su-gesamt b{font-size:28px;font-weight:800;font-variation-settings:"wdth" 116}
+
+/* Woche */
+#weekView{border-radius:26px;padding:22px;background:var(--glass);border:1px solid var(--glass-edge);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);box-shadow:var(--shadow)}
+.su-woche{position:relative;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:12px;align-items:end;height:250px}
+.su-tag{display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end;min-width:0}
+.su-saeule{width:100%;max-width:74px;display:flex;flex-direction:column-reverse;gap:2px;border-radius:12px;overflow:hidden;min-height:3px;background:color-mix(in srgb,var(--text-3) 14%,transparent)}
+.su-saeule i{display:block;background:linear-gradient(180deg,color-mix(in srgb,var(--c) 80%,#fff),var(--c))}
+.su-saeule i.live{background:repeating-linear-gradient(135deg,var(--teal) 0 6px,color-mix(in srgb,var(--teal) 65%,#fff) 6px 12px)}
+.su-tag.heute .su-saeule{box-shadow:0 0 0 2px var(--teal),0 0 26px -4px var(--teal)}
+.su-tag small{font-family:var(--mono);font-size:11px;color:var(--text-3)}
+.su-tag b{font-family:var(--mono);font-size:13px;font-weight:500;min-height:16px}
+.su-tag.heute small{color:var(--teal)}
+.su-soll{position:absolute;left:0;right:0;border-top:1px dashed color-mix(in srgb,var(--amber) 70%,transparent);pointer-events:none}
+.su-soll span{position:absolute;right:0;top:-18px;font-family:var(--mono);font-size:10px;color:var(--amber)}
+.su-legende{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:18px;font-size:13px;color:var(--text-2)}
+.su-legende span{display:inline-flex;align-items:center;gap:8px}
+.su-legende i{width:10px;height:10px;border-radius:3px;background:var(--c)}
+.su-legende b{font-family:var(--mono);font-weight:500;color:var(--text)}
+.su-woche-fuss{display:flex;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:14px;color:var(--text-2)}
+.su-woche-fuss b{font-family:var(--mono);color:var(--text)}
+
+/* Zuordnen als Blatt von unten */
+#overlay{align-items:flex-end;justify-content:center;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#overlay .modal{width:min(620px,100vw);max-width:none;border-radius:28px 28px 0 0;padding:12px 22px calc(22px + env(safe-area-inset-bottom));margin:0;
+  background:var(--surface);animation:suBlatt .55s cubic-bezier(.3,1.25,.4,1);max-height:92vh;overflow:auto}
+#overlay .modal::before{content:"";display:block;width:44px;height:5px;border-radius:5px;background:var(--line-strong);margin:0 auto 14px}
+@keyframes suBlatt{from{transform:translateY(100%)}}
+#overlay .modal h3{font-size:22px;font-weight:800;font-variation-settings:"wdth" 112;margin:0}
+#overlay .modal > p{margin:4px 0 14px;color:var(--text-2)}
+.su-wahlen{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.su-wahl{--c:var(--amber);display:flex;align-items:center;gap:12px;min-height:60px;padding:8px 12px;border-radius:16px;border:1px solid var(--line);background:var(--film);
+  text-align:left;color:var(--text);cursor:pointer;transition:border-color var(--t-s),background var(--t-s),transform var(--t-s) var(--kurve)}
+.su-wahl:hover{transform:translateX(3px)}
+.su-wahl.an{border-color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent)}
+.su-wahl .av{width:38px;height:38px;border-radius:12px;flex:none;display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;
+  background:linear-gradient(140deg,var(--c),color-mix(in srgb,var(--c) 55%,#000));box-shadow:inset 0 1px 1px rgba(255,255,255,.4)}
+.su-wahl .t{flex:1;min-width:0}.su-wahl b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.su-wahl small{font-size:12px;color:var(--text-3)}
+.su-wahl .h{width:22px;height:22px;flex:none;border-radius:50%;border:2px solid var(--line-strong);display:grid;place-items:center}
+.su-wahl.an .h{border-color:var(--c);background:var(--c)}
+.su-wahl.an .h::after{content:"";width:8px;height:8px;border-radius:50%;background:#fff}
+.su-einst{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0 16px;padding:14px;border-radius:14px;background:var(--film);border:1px solid var(--line)}
+.su-einst label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-2);flex-wrap:wrap}
+.su-einst input{width:80px;height:34px;border-radius:10px;border:1px solid var(--line-strong);background:var(--surface);color:var(--text);padding:0 8px}
+.su-einst small{grid-column:1/-1;font-size:12px;color:var(--text-3)}
+@media (max-width:700px){.su-einst{grid-template-columns:1fr}}
+.su-andere summary{cursor:pointer;font-size:13px;color:var(--text-2);margin:2px 0 10px}
+#overlay .modal-actions .save{flex:1}
+
+@media (max-width:900px){
+  .su{padding:0 16px 30px}
+  .su-buehne{grid-template-columns:1fr;gap:18px;padding-top:16px}
+  .su-satz{display:none}
+  .su-stats{gap:8px}.su-stat{padding:12px}.su-stat b{font-size:21px}
+  .su-woche{height:200px;gap:6px}
+  #weekView{padding:16px;border-radius:22px}
+  .su-seg{width:100%;overflow-x:auto}.su-seg button{flex:1;padding:0 8px;font-size:13px}
+  .su-reiter #addManual{width:100%}
+  .nav-r .warnbanner span,.su-lang{display:none}
+  .nav-r #abChip,.nav-r #srcChip{display:none}
+  .nav .brand{flex:none}.nav .brand .hide-sm{display:none}
+  .nav-r .warnbanner #warnDismiss{display:none}.nav-r .warnbanner{padding:0 12px;font-size:12px}.nav-r{gap:6px}
+}
+@media (prefers-reduced-motion:reduce){.su-orb::before,.su-spur .blk.live,.su-orb-in .state::before,#overlay .modal,.su-ansicht.an{animation:none!important}}
 </style>
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='8'%20fill='%2306090E'/%3E%3Cg%20transform='translate%2816%2016%29%20scale%280.19%29%20translate%28-60%20-56%29'%3E%3Cpath%20d='M26%2C16%20V62%20A34%2C34%200%200%200%2094%2C62%20V16'%20fill='none'%20stroke='%23EDF0F3'%20stroke-width='22'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3Ccircle%20cx='60'%20cy='64'%20r='18.5'%20fill='%23F2B33D'/%3E%3C/g%3E%3C/svg%3E">
 </head>
@@ -647,6 +798,9 @@ footer.site .pill.sm{height:30px;padding:0 11px;font-size:13px;font-family:var(-
   <div class="nav-in">
     <a class="brand" title="Zum Kontor" href="https://maikunverricht.github.io/Kontor/"><span class="mark" aria-hidden="true"><svg viewBox="15 5 90 102"><path d="M26,16 V62 A34,34 0 0 0 94,62 V16" fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/><circle cx="60" cy="64" r="18.5" fill="var(--amber,#F2B33D)"/></svg></span><span class="hide-sm">Werkbank&nbsp;</span><b>Stempeluhr</b></a>
     <div class="nav-r">
+      <div class="warnbanner" id="warnBanner"><button type="button" class="wb-auf" id="warnAuf" title="Daten liegen nur in diesem Browser – zur Datenablage"><b>Nur lokal</b><span> · Excel verknüpfen</span></button><button type="button" id="warnDismiss" title="Hinweis ausblenden" aria-label="Hinweis ausblenden">✕</button></div>
+      <button class="pill" id="abChip" type="button" title="Woher die Stammdaten kommen">Auftragsbuch</button>
+      <button class="ghost" id="openMgmt" type="button" title="Einstellungen und Stammdaten">&#9881;<span class="su-lang"> Einstellungen</span></button>
       <button class="ghost" id="srcChip" type="button" title="Datenablage">Datenablage</button>
       <button class="pill icon-btn theme" id="themeBtn" type="button" aria-pressed="false" aria-label="Helles Aussehen einschalten">
     <svg class="ic-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.3M12 19.1v2.3M2.6 12h2.3M19.1 12h2.3M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4L17 7M7 17l-1.6 1.6"/></svg>
@@ -655,68 +809,88 @@ footer.site .pill.sm{height:30px;padding:0 11px;font-size:13px;font-family:var(-
     </div>
   </div>
 </header>
-<header>
-  <div class="head-top">
-    <div>
-      <div class="eyebrow">Werkbank Unverricht</div>
-      <h1>Stempel<em>uhr</em></h1>
-      <p>Start/Pause/Stopp · Zuordnung nach dem Stoppen · Excel als Speicher</p>
-    </div>
-    <div class="head-actions">
-      <button class="pill" id="abChip" type="button" title="Woher die Stammdaten kommen">Auftragsbuch</button>
-      <button class="ghost" id="openMgmt">&#9881; Stammdaten</button>
-    </div>
-  </div>
-  
-</header>
-<div class="warnbanner" id="warnBanner">
-  <span>&#9888; Keine Excel verknüpft – deine Daten liegen nur in diesem Browser. Verknüpfe eine Excel oder lade ein Backup, um Datenverlust zu vermeiden.</span>
-  <button id="warnDismiss">Verstanden</button>
-</div>
-
-<div class="layout">
-  <div class="clock-card">
-    <div class="uhr-ball">
-      <svg width="300" height="300" viewBox="0 0 300 300" aria-hidden="true">
-        <circle class="ring-track" cx="150" cy="150" r="132"></circle>
-        <circle class="ring-prog" id="ring" cx="150" cy="150" r="132"></circle>
-      </svg>
-      <button class="btn-main" id="toggle">Start</button>
-      <button type="button" id="pauseBtn" style="display:none" aria-label="Pause" title="Pause">Pause</button>
-    </div>
-    <div class="uhr-digital">
-      <div class="state" id="state">Bereit</div>
-      <div class="time" aria-live="off"><span id="time">00:00</span><span class="sec" id="sec">00</span></div>
-      <div class="live-meta" id="liveMeta">Noch keine laufende Erfassung</div>
-    </div>
-    <div class="uhr-ctl">
-      <div class="clock-ctrl">
-        <span>Rundung auf</span>
-        <select class="ghost" id="rounding" style="padding:4px 8px">
-          <option value="0">keine</option><option value="5">5 Min</option><option value="10">10 Min</option><option value="15">15 Min</option>
-        </select>
+<!-- Seit 21.11.2026: eine Bühne statt Kopf und acht Kacheln.
+     Oben der Ring (Start · Pause · Stopp), daneben der Satz zur Woche,
+     drei Kennzahlen und das Tagesband. Darunter vier Reiter. -->
+<main class="su" id="suMain">
+  <section class="su-buehne">
+    <div class="su-orb-wrap">
+      <div class="su-orb" id="suOrb">
+        <div class="su-ring"></div><div class="su-skala"></div><div class="su-skala fein"></div><div class="su-kopf"><i></i></div><div class="su-scheibe"></div>
+        <svg class="su-alt" width="0" height="0" aria-hidden="true"><circle id="ring" cx="0" cy="0" r="0"></circle></svg>
+        <div class="su-orb-in">
+          <div class="state" id="state">Bereit</div>
+          <div class="time" aria-live="off"><span id="time">00:00</span><span class="sec" id="sec">00</span></div>
+          <div class="live-meta" id="liveMeta">Noch keine laufende Erfassung</div>
+          <div class="su-knoepfe">
+            <button type="button" id="pauseBtn" style="display:none" aria-label="Pause" title="Pause">Pause</button>
+            <button class="btn-main" id="toggle" type="button">Start</button>
+          </div>
+        </div>
       </div>
     </div>
+    <div class="su-rechts">
+      <div class="eyebrow" id="suDatum"></div>
+      <h2 class="su-satz" id="suSatz"></h2>
+      <div class="su-stats">
+        <div class="su-stat"><small>Heute</small><b><span id="s-today">0,00</span><i>h</i></b></div>
+        <div class="su-stat"><small>Woche</small><b><span id="s-woche">0,00</span><i>h</i></b></div>
+        <div class="su-stat geld"><small>Nicht abgerechnet</small><b class="eur" id="s-open">–</b></div>
+      </div>
+      <div class="su-band">
+        <div class="su-band-kopf"><span>Heute</span><span id="suBandSumme"></span></div>
+        <div class="su-spur" id="suSpur"></div>
+        <div class="su-skal" id="suSkal"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="su-reiter">
+    <div class="su-seg" role="tablist" aria-label="Ansicht">
+      <button type="button" role="tab" data-su="woche" class="an" aria-selected="true">Woche</button>
+      <button type="button" role="tab" data-su="buchungen" aria-selected="false">Buchungen</button>
+      <button type="button" role="tab" data-su="monat" aria-selected="false">Monat</button>
+      <button type="button" role="tab" data-su="zettel" aria-selected="false">Stundenzettel</button>
+    </div>
+    <button class="btn-primary" id="addManual" type="button">+ Nachtragen</button>
   </div>
 
-  <div class="dash">
-    <div class="cards">
-      <div class="stat"><div class="k">Heute</div><div class="v" id="s-today">0,00</div></div>
-      <div class="stat"><div class="k">Nicht abgerechnet</div><div class="v eur" id="s-open">–</div></div>
-      <div class="stat"><div class="k">Gesamtstunden</div><div class="v" id="s-total">0,00</div></div>
-      <div class="stat"><div class="k">Betrag</div><div class="v eur" id="s-eur">0 &euro;</div></div>
+  <section class="su-feld">
+    <div class="su-ansicht an" id="su-woche" role="tabpanel">
+      <div id="weekView"></div>
     </div>
-    <div class="grid2">
-      <div class="panel"><h2>Stunden pro Auftraggeber</h2><div id="byAuftraggeber"></div></div>
-      <div class="panel"><h2>Stunden pro Auftrag</h2><div id="byAuftrag"></div></div>
+
+    <div class="su-ansicht" id="su-buchungen" role="tabpanel">
+      <div class="panel">
+        <div class="toolbar">
+          <h2 style="margin:0;flex:1">Buchungen</h2>
+          <input type="date" class="ghost" id="fVon" title="von"><input type="date" class="ghost" id="fBis" title="bis">
+          <select class="ghost" id="filterAuftraggeber"><option value="">Alle Auftraggeber</option></select>
+          <span class="pill" id="filterSum" style="font-weight:600"></span>
+          <button class="ghost" id="exportPdf">PDF</button>
+          <button class="ghost" id="exportCsv">CSV</button>
+        </div>
+        <div id="tableWrap"></div>
+      </div>
     </div>
-    <div class="grid2">
-      <div class="panel"><h2>Diese Woche</h2><div id="weekView"></div></div>
-      <div class="panel"><h2>Jahr <select class="ghost ctl" id="yearSel" style="padding:3px 6px"></select></h2><div id="yearView"></div></div>
+
+    <div class="su-ansicht" id="su-monat" role="tabpanel">
+      <div class="panel"><h2 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Monatsübersicht <a href="https://maikunverricht.github.io/Rechnungsbuch/" class="pill" style="font-weight:500;text-decoration:none">Rechnungsbuch ↗</a><span class="pill" id="invSummary" style="font-weight:500"></span><label style="margin-left:auto;font-size:12px;font-weight:500;display:flex;align-items:center;gap:6px;white-space:nowrap"><input type="checkbox" id="onlyOpenInv" style="width:auto">nur nicht abgerechnete</label></h2><div id="monatsuebersicht"></div></div>
+      <div class="panel" id="kontoPanel" hidden><h2 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Stundenkonto <span class="pill" style="font-weight:500">Auszahlungsgrenze</span></h2><div id="kontoView"></div></div>
+      <div class="grid2">
+        <div class="panel"><h2>Jahr <select class="ghost ctl" id="yearSel" style="padding:3px 6px"></select></h2><div id="yearView"></div></div>
+        <div class="panel"><h2>Seit Beginn</h2>
+          <div class="su-gesamt"><div><small>Stunden</small><b id="s-total">0,00</b></div><div><small>Betrag</small><b class="eur" id="s-eur">0 &euro;</b></div></div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="panel"><h2>Stunden pro Auftraggeber</h2><div id="byAuftraggeber"></div></div>
+        <div class="panel"><h2>Stunden pro Auftrag</h2><div id="byAuftrag"></div></div>
+      </div>
     </div>
-    <div class="panel"><h2 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Monatsübersicht <a href="https://maikunverricht.github.io/Rechnungsbuch/" class="pill" style="font-weight:500;text-decoration:none">Rechnungsbuch ↗</a><span class="pill" id="invSummary" style="font-weight:500"></span><label style="margin-left:auto;font-size:12px;font-weight:500;display:flex;align-items:center;gap:6px;white-space:nowrap"><input type="checkbox" id="onlyOpenInv" style="width:auto">nur nicht abgerechnete</label></h2><div id="monatsuebersicht"></div></div>
-    <div class="panel" id="kontoPanel" hidden><h2 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Stundenkonto <span class="pill" style="font-weight:500">Auszahlungsgrenze</span></h2><div id="kontoView"></div></div>
-    <div class="panel" id="szPanel"><h2>Stundenzettel</h2>
+
+    <div class="su-ansicht" id="su-zettel" role="tabpanel">
+      <div class="panel" id="szPanel"><h2>Stundenzettel</h2>
       <div class="sz-kopf">
         <select class="ghost" id="szMonth" aria-label="Monat"></select>
         <select class="ghost" id="szAgb" aria-label="Auftraggeber"></select>
@@ -725,29 +899,21 @@ footer.site .pill.sm{height:30px;padding:0 11px;font-size:13px;font-family:var(-
         <button class="btn-primary" type="button" id="szPdf">PDF erstellen</button>
       </div>
       <div id="szView" style="overflow-x:auto"></div>
-    </div>
-    <div class="panel">
-      <div class="toolbar">
-        <h2 style="margin:0;flex:1">Buchungen</h2>
-        <button class="btn-primary" id="addManual">+ Nachtragen</button>
-        <input type="date" class="ghost" id="fVon" title="von"><input type="date" class="ghost" id="fBis" title="bis">
-        <select class="ghost" id="filterAuftraggeber"><option value="">Alle Auftraggeber</option></select>
-        <span class="pill" id="filterSum" style="font-weight:600"></span>
-        <button class="ghost" id="exportPdf">PDF</button>
-        <button class="ghost" id="exportCsv">CSV</button>
       </div>
-      <div id="tableWrap"></div>
     </div>
-  </div>
-</div>
+  </section>
+</main>
 
 <!-- Buchungs-Dialog -->
 <div class="overlay" id="overlay">
   <div class="modal">
-    <h3>Erfassung speichern</h3>
-    <p>Dauer: <span class="dur-badge" id="mDur">00:00</span> &middot; Bitte zuordnen.</p>
+    <h3>Wofür war das?</h3>
+    <p><span class="dur-badge" id="mDur">00:00</span> erfasst &middot; zuletzt genutzte Aufträge zuerst</p>
+    <div class="su-wahlen" id="suWahlen"></div>
+    <details class="su-andere"><summary>Andere Auswahl</summary>
     <div class="field"><label>Auftraggeber</label><select id="mAuftraggeber"></select></div>
     <div class="field"><label>Auftrag</label><select id="mAuftrag"></select></div>
+    </details>
     <div class="field"><label>Notiz</label><textarea id="mNotiz" placeholder="Was wurde gemacht?"></textarea></div>
     <div class="hint" id="saveHint"></div>
     <div class="modal-actions">
@@ -784,7 +950,13 @@ footer.site .pill.sm{height:30px;padding:0 11px;font-size:13px;font-family:var(-
 <!-- Stammdaten: Ansicht, geführt wird im Auftragsbuch -->
 <div class="overlay" id="mgmtOverlay">
   <div class="modal xl">
-    <h3>Stammdaten</h3>
+    <h3>Einstellungen und Stammdaten</h3>
+    <div class="su-einst">
+      <label>Rundung auf <select class="ghost" id="rounding" style="padding:4px 8px"><option value="0">keine</option><option value="5">5 Min</option><option value="10">10 Min</option><option value="15">15 Min</option></select></label>
+      <label>Tagesvorgabe <input type="number" id="sollTag" min="0" max="24" step="0.5" inputmode="decimal" placeholder="keine"> h</label>
+      <label>Wochenvorgabe <input type="number" id="sollWoche" min="0" max="100" step="0.5" inputmode="decimal" placeholder="keine"> h</label>
+      <small>Leer lassen, wenn es kein Soll gibt – dann misst der Ring den Tag auf zehn Stunden.</small>
+    </div>
     <p id="mgmtQuelleText">…</p>
     <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:14px">
       <input type="checkbox" id="hideErledigt" style="width:auto"> Abgeschlossene Aufträge in der Auswahl ausblenden</label>
@@ -2038,6 +2210,90 @@ $("restoreFile").addEventListener("change",e=>{const f=e.target.files[0];if(!f)r
     alert("Backup wiederhergestellt – Buchungen und Einstellungen. Die Stammdaten kommen aus dem Auftragsbuch.");}catch(err){alert("Fehler: "+err.message);}};
   r.readAsText(f);e.target.value="";});
 
+
+// ---- Bühne: Ring, Satz, Kennzahlen, Tagesband (seit 21.11.2026) ----
+/* Der Ring füllt sich gegen die Tagesvorgabe; ohne Vorgabe gegen zehn
+   Stunden, dann ist er nur ein Maß und kein Soll. Heute und Woche zählen
+   die laufende Erfassung mit. */
+const SU_FARBEN=["#F2B33D","#2FA894","#5B8DEF","#9C7BE0","#D9A86C","#E2725B","#5AA9C9","#C7A23A"];
+const suNf1=new Intl.NumberFormat("de-DE",{minimumFractionDigits:1,maximumFractionDigits:1});
+const suNfDatum=new Intl.DateTimeFormat("de-DE",{weekday:"long",day:"numeric",month:"long"});
+function suFarbe(s){let h=0;String(s||"").split("").forEach(c=>{h=(h*31+c.charCodeAt(0))>>>0;});return SU_FARBEN[h%SU_FARBEN.length];}
+function suKuerzel(n){const w=String(n||"?").replace(/[^\p{L}\p{N} ]/gu," ").trim().split(/\s+/);return((w[0]||"?")[0]+(w.length>1?w[1][0]:(w[0][1]||""))).toUpperCase();}
+function suKw(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const n=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-n);
+  const j=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil(((t-j)/864e5+1)/7);}
+function suSoll(k){const v=parseFloat(settings[k]);return v>0?v:0;}
+function suLive(){return clock&&clock.running?currentElapsed():0;}
+function suEnde(e){return e.end||e.start+e.dur*1000;}
+function suH(sec){return suNf1.format(sec/3600);}
+function suBuehne(){
+  const orb=$("suOrb");if(!orb)return;
+  const now=new Date(),t0=new Date(now).setHours(0,0,0,0),sow=startOfWeek(now).getTime(),live=suLive();
+  const heuteE=entries.filter(e=>e.start>=t0&&e.start<t0+864e5);
+  const heute=heuteE.reduce((a,e)=>a+e.dur,0)+live;
+  const woche=entries.filter(e=>e.start>=sow&&e.start<sow+7*864e5).reduce((a,e)=>a+e.dur,0)+live;
+  $("s-today").textContent=suH(heute);$("s-woche").textContent=suH(woche);
+  const sollT=suSoll("sollTag"),sollW=suSoll("sollWoche");
+  orb.style.setProperty("--p",Math.min(heute/3600/(sollT||10),1).toFixed(4));
+  orb.classList.toggle("laeuft",!!(clock.running&&!clock.paused));orb.classList.toggle("pause",!!(clock.running&&clock.paused));
+  $("suDatum").textContent=suNfDatum.format(now).replace(","," ·")+" · KW "+suKw(now);
+  const wh=woche/3600,zahl=suNf1.format(wh).replace(/,0$/,"");
+  $("suSatz").innerHTML="<b>"+zahl+(zahl==="1"?" Stunde":" Stunden")+"</b> diese Woche"+
+    (sollW?(wh>=sollW?" – Soll erreicht.":" – "+suNf1.format(sollW-wh).replace(/,0$/,"")+" fehlen bis "+String(sollW).replace(".",",")+"."):".");
+  /* Tagesband */
+  const nowMs=now.getTime(),h=ms=>(ms-t0)/36e5;
+  let von=6,bis=21;
+  heuteE.forEach(e=>{von=Math.min(von,Math.floor(h(e.start)));bis=Math.max(bis,Math.ceil(h(suEnde(e))));});
+  if(clock.running){von=Math.min(von,Math.floor(h(clock.bookingStart)));bis=Math.max(bis,Math.ceil(h(nowMs)));}
+  bis=Math.min(24,bis);von=Math.max(0,von);
+  const x=v=>((v-von)/(bis-von)*100),bx=(a,b)=>"left:"+x(a)+"%;width:calc("+Math.max(0,x(b)-x(a))+"% - 2px)";
+  let html=heuteE.map(e=>'<span class="blk" title="'+esc(e.auftraggeber+" · "+e.auftrag)+'" style="--c:'+suFarbe(e.auftraggeber+"|"+e.auftrag)+";"+bx(h(e.start),h(suEnde(e)))+'"></span>').join("");
+  if(clock.running)html+='<span class="blk live'+(clock.paused?" pause":"")+'" style="'+bx(h(clock.bookingStart),h(nowMs))+'"></span>';
+  if(h(nowMs)>=von&&h(nowMs)<=bis)html+='<span class="jetzt" style="left:'+x(h(nowMs))+'%"></span>';
+  $("suSpur").innerHTML=html;$("suBandSumme").textContent=suH(heute)+" h";
+  const schritt=(bis-von)>15?4:3,mk=[];for(let s=von;s<=bis;s+=schritt)mk.push("<span>"+s+"</span>");
+  $("suSkal").innerHTML=mk.join("");
+}
+setInterval(()=>{if(!document.hidden&&!(clock&&clock.running&&!clock.paused))suBuehne();},60000);
+
+/* Reiter: eine Ansicht zur Zeit; die Wahl merkt sich der Browser. */
+(function(){
+  const KEY="stempeluhr_ansicht",kn=[...document.querySelectorAll("[data-su]")];
+  function zeigen(v){kn.forEach(b=>{const an=b.dataset.su===v;b.classList.toggle("an",an);b.setAttribute("aria-selected",an);});
+    document.querySelectorAll(".su-ansicht").forEach(a=>a.classList.toggle("an",a.id==="su-"+v));
+    try{localStorage.setItem(KEY,v);}catch(e){}}
+  kn.forEach(b=>b.addEventListener("click",()=>zeigen(b.dataset.su)));
+  let v="woche";try{v=localStorage.getItem(KEY)||"woche";}catch(e){}
+  if(!kn.some(b=>b.dataset.su===v))v="woche";
+  zeigen(v);
+  window.suAnsicht=zeigen;
+})();
+
+/* Hinweis „Nur im Browser“ öffnet die Datenablage. */
+(function(){const a=document.getElementById("warnAuf"),s=document.getElementById("srcChip");if(a&&s)a.addEventListener("click",()=>s.click());})();
+
+/* Vorgaben in den Einstellungen: leer heißt kein Soll. */
+["sollTag","sollWoche"].forEach(k=>{const el=$(k);if(!el)return;
+  el.addEventListener("change",()=>{const v=parseFloat(String(el.value).replace(",","."));settings[k]=v>0?v:null;saveSettings();suBuehne();renderWeek();});});
+
+/* Zuordnen: die Aufträge als Karten, zuletzt genutzte zuerst. */
+function suWahlenBauen(){
+  const box=$("suWahlen");if(!box)return;
+  const zuletzt={};entries.forEach(e=>{const k=e.auftraggeber+"|"+e.auftrag;zuletzt[k]=Math.max(zuletzt[k]||0,e.start);});
+  const liste=master.auftraege.filter(a=>!(settings.hideErledigt&&!a.offen))
+    .map(a=>({agb:a.agb,auf:a.titel,t:zuletzt[a.agb+"|"+a.titel]||0})).sort((a,b)=>b.t-a.t).slice(0,6);
+  box.innerHTML=liste.map((a,i)=>'<button type="button" class="su-wahl" data-i="'+i+'" style="--c:'+suFarbe(a.agb+"|"+a.auf)+'"><span class="av">'+esc(suKuerzel(a.agb))+
+    '</span><span class="t"><b>'+esc(a.auf)+'</b><small>'+esc(a.agb)+'</small></span><span class="h"></span></button>').join("");
+  const det=document.querySelector(".su-andere");if(det)det.open=!liste.length;
+  function waehlen(i){const a=liste[i];box.querySelectorAll(".su-wahl").forEach(b=>b.classList.toggle("an",+b.dataset.i===i));
+    const sa=$("mAuftraggeber");if(![...sa.options].some(o=>o.value===a.agb))sa.insertAdjacentHTML("beforeend",'<option value="'+esc(a.agb)+'">'+esc(a.agb)+'</option>');
+    sa.value=a.agb;sa.dispatchEvent(new Event("change"));
+    const sf=$("mAuftrag");if(![...sf.options].some(o=>o.value===a.auf))sf.insertAdjacentHTML("beforeend",'<option value="'+esc(a.auf)+'">'+esc(a.auf)+'</option>');
+    sf.value=a.auf;}
+  box.querySelectorAll(".su-wahl").forEach(b=>b.addEventListener("click",()=>waehlen(+b.dataset.i)));
+  if(liste.length)waehlen(0);
+}
+
 // ---- Warnbanner ----
 function updateWarn(){const show=!(linkedHandle&&permGranted)&&entries.length&&!localStorage.getItem(WARN_KEY);
   $("warnBanner").classList.toggle("show",!!show);}
@@ -2053,10 +2309,11 @@ function uiPaused(){$("toggle").textContent="Stopp";$("toggle").classList.add("r
   $("pauseBtn").style.display="";$("pauseBtn").textContent="Weiter";$("pauseBtn").dataset.z="weiter";$("pauseBtn").title="Weiter";$("pauseBtn").setAttribute("aria-label","Weiter");}
 function uiIdle(){$("toggle").textContent="Start";$("toggle").classList.remove("running");$("state").textContent="Bereit";
   $("pauseBtn").style.display="none";$("time").textContent="00:00";$("sec").textContent="00";ring.style.strokeDashoffset=C;
-  $("liveMeta").textContent="Noch keine laufende Erfassung";document.title=TITEL0;}
+  $("liveMeta").textContent="Noch keine laufende Erfassung";document.title=TITEL0;suBuehne();}
 function tick(){const el=currentElapsed();document.title=(clock.paused?"⏸ ":"▶ ")+fmtClock(el)+":"+String(Math.floor(el%60)).padStart(2,"0")+" · Stempeluhr";$("time").textContent=fmtClock(el);$("sec").textContent=String(Math.floor(el%60)).padStart(2,"0");
   ring.style.strokeDashoffset=C*(1-(el%3600)/3600);
-  $("liveMeta").textContent=(clock.paused?"Pausiert · ":"Läuft seit ")+dt(clock.bookingStart).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});}
+  $("liveMeta").textContent=(clock.paused?"Pausiert · ":"Läuft seit ")+dt(clock.bookingStart).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+  suBuehne();if(Math.floor(el)%60===0)renderWeek();}
 function startClock(){clock={running:true,paused:false,accumSec:0,segStart:Date.now(),bookingStart:Date.now()};persistRun();uiRunning();tick();tickTimer=setInterval(tick,1000);}
 function pauseClock(){if(!clock.running||clock.paused)return;clock.accumSec+=(Date.now()-clock.segStart)/1000;clock.segStart=null;clock.paused=true;persistRun();clearInterval(tickTimer);tick();uiPaused();}
 function resumeClock(){if(!clock.running||!clock.paused)return;clock.segStart=Date.now();clock.paused=false;persistRun();tickTimer=setInterval(tick,1000);uiRunning();tick();}
@@ -2075,7 +2332,7 @@ function openBooking(){
   $("mAuftraggeber").innerHTML='<option value="" disabled selected>— wählen —</option>'+names.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join("");
   $("mAuftrag").innerHTML='<option value="" disabled selected>— zuerst Auftraggeber —</option>';$("mNotiz").value="";
   $("saveHint").textContent=(linkedHandle&&permGranted)?("Wird in "+esc(linkedName)+" gespeichert."):"Keine Excel verknüpft – Speicherung nur lokal.";
-  $("overlay").classList.add("open");
+  $("overlay").classList.add("open");suWahlenBauen();
 }
 $("mAuftraggeber").addEventListener("change",e=>{const t=[...new Set(jobsFor(e.target.value))];
   $("mAuftrag").innerHTML='<option value="" disabled selected>— wählen —</option>'+t.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join("");});
@@ -2438,12 +2695,23 @@ function altVerdrahten(){
 }
 
 function startOfWeek(d){const x=new Date(d);const day=(x.getDay()+6)%7;x.setHours(0,0,0,0);x.setDate(x.getDate()-day);return x;}
-function renderWeek(){const sow=startOfWeek(new Date());const days=[0,1,2,3,4,5,6].map(i=>{const d=new Date(sow);d.setDate(sow.getDate()+i);return d;});
-  const sums=days.map(d=>{const s=d.getTime(),e=s+864e5;return entries.filter(x=>x.start>=s&&x.start<e).reduce((a,x)=>a+x.dur,0);});
-  const max=Math.max(1,...sums);const names=["Mo","Di","Mi","Do","Fr","Sa","So"];const tot=sums.reduce((a,b)=>a+b,0);
-  $("weekView").innerHTML='<div class="weekbars">'+days.map((d,i)=>'<div class="wb"><div class="h">'+(sums[i]?nf2.format(hours(sums[i])):"")+'</div>'+
-    '<div class="col" style="height:'+Math.round(sums[i]/max*100)+'%"></div><div class="d">'+names[i]+'</div></div>').join("")+'</div>'+
-    '<div class="row" style="border:none;padding-top:10px"><span class="lbl">Woche gesamt</span><span class="val">'+nf2.format(hours(tot))+' h</span></div>';}
+function renderWeek(){
+  /* Seit 21.11.2026: Säulen je Tag, nach Auftrag eingefärbt; heute mit der
+     laufenden Erfassung; gestrichelt die Tagesvorgabe, wenn es eine gibt. */
+  const sow=startOfWeek(new Date());const names=["Mo","Di","Mi","Do","Fr","Sa","So"];
+  const heuteI=(new Date().getDay()+6)%7,live=suLive(),sollT=suSoll("sollTag"),sollW=suSoll("sollWoche");
+  const je={},tage=[0,1,2,3,4,5,6].map(i=>{const s=sow.getTime()+i*864e5;const t={};
+    entries.filter(x=>x.start>=s&&x.start<s+864e5).forEach(x=>{const k=x.auftraggeber+"|"+x.auftrag;t[k]=(t[k]||0)+x.dur;je[k]=(je[k]||0)+x.dur;});return t;});
+  const sums=tage.map((t,i)=>Object.values(t).reduce((a,b)=>a+b,0)+(i===heuteI?live:0));
+  const max=Math.max(sollT*3600*1.1,10*3600,...sums),hoehe=innerWidth<900?140:200,tot=sums.reduce((a,b)=>a+b,0);
+  let html='<div class="su-woche">';
+  if(sollT)html+='<div class="su-soll" style="bottom:'+(28+sollT*3600/max*hoehe)+'px"><span>Vorgabe '+suNf1.format(sollT).replace(/,0$/,"")+' h</span></div>';
+  html+=tage.map((t,i)=>{const teile=Object.entries(t).map(([k,s])=>'<i title="'+esc(k.replace("|"," · "))+'" style="--c:'+suFarbe(k)+';height:'+(s/max*hoehe)+'px"></i>');
+    if(i===heuteI&&live)teile.push('<i class="live" style="height:'+(live/max*hoehe)+'px"></i>');
+    return '<div class="su-tag'+(i===heuteI?" heute":"")+'"><b>'+(sums[i]?suH(sums[i]):"")+'</b><div class="su-saeule">'+teile.join("")+'</div><small>'+names[i]+'</small></div>';}).join("");
+  html+='</div><div class="su-legende">'+Object.entries(je).sort((a,b)=>b[1]-a[1]).map(([k,s])=>'<span style="--c:'+suFarbe(k)+'"><i></i>'+esc(k.split("|")[1]||k)+' <b>'+suH(s)+' h</b></span>').join("")+'</div>'+
+    '<div class="su-woche-fuss"><span>Woche gesamt'+(sollW?' · Vorgabe '+String(sollW).replace(".",",")+' h':'')+'</span><b>'+suH(tot)+' h</b></div>';
+  $("weekView").innerHTML=html;}
 function renderYear(){const years=[...new Set(entries.map(e=>dt(e.start).getFullYear()))].sort((a,b)=>b-a);
   const sel=$("yearSel");if(!years.length){sel.innerHTML="";$("yearView").innerHTML='<div class="empty">Noch keine Daten.</div>';return;}
   const cur=sel.value&&years.includes(+sel.value)?+sel.value:years[0];
@@ -2464,7 +2732,7 @@ function render(){const totalSec=entries.reduce((s,e)=>s+e.dur,0),totalEur=entri
   renderWeek();renderYear();renderMonat();renderKonto();renderSZ();
   const sel=$("filterAuftraggeber"),cur=sel.value;const agb=[...new Set(entries.map(e=>e.auftraggeber))];
   sel.innerHTML='<option value="">Alle Auftraggeber</option>'+agb.map(a=>'<option value="'+esc(a)+'">'+esc(a)+'</option>').join("");sel.value=cur;
-  renderTable();updateWarn();}
+  renderTable();updateWarn();suBuehne();}
 function tableRows(){let rows=[...entries];const f=$("filterAuftraggeber").value,von=$("fVon").value,bis=$("fBis").value;
   if(f)rows=rows.filter(e=>e.auftraggeber===f);
   if(von){const t=new Date(von+"T00:00").getTime();rows=rows.filter(e=>e.start>=t);}
@@ -2833,7 +3101,8 @@ $("pdfGo").addEventListener("click",()=>{
 });
 
 // ---- UI aus Settings ----
-function applySettingsUI(){$("rounding").value=String(settings.rounding||0);$("hideErledigt").checked=settings.hideErledigt;}
+function applySettingsUI(){$("rounding").value=String(settings.rounding||0);$("hideErledigt").checked=settings.hideErledigt;
+  $("sollTag").value=settings.sollTag>0?settings.sollTag:"";$("sollWoche").value=settings.sollWoche>0?settings.sollWoche:"";}
 
 // ---- Init ----
 WBTor.start(function(){
@@ -2910,40 +3179,5 @@ zeitenSpiegeln();
 })();
 </script>
 
-<script>
-/* Kacheln einklappen (Klick auf die Überschrift) – nur Darstellung, merkt sich der Browser. */
-(function(){
-  var KEY="stempeluhr_ui_v1", ui={zu:{},breit:false};
-  try{var r=JSON.parse(localStorage.getItem(KEY));if(r&&typeof r==="object")ui={zu:r.zu||{},breit:!!r.breit};}catch(e){}
-  function sichern(){try{localStorage.setItem(KEY,JSON.stringify(ui));}catch(e){}}
-  var dash=document.querySelector(".dash"), layout=document.querySelector(".layout");
-  if(!dash||!layout) return;
-  var kacheln=[];
-  function name(p,i){var h=p.querySelector("h2");return (h?h.firstChild&&h.firstChild.textContent||h.textContent:"")
-    .trim().replace(/\s+/g," ").slice(0,30)||("kachel"+i);}
-  [].slice.call(dash.querySelectorAll(".panel")).forEach(function(p,i){
-    var h=p.querySelector("h2"); if(!h) return;
-    var k=name(p,i); kacheln.push({el:p,key:k});
-    h.classList.add("klappbar");
-    var c=document.createElement("span");c.className="chev";c.textContent="\u25BE";h.insertBefore(c,h.firstChild);
-    h.addEventListener("click",function(ev){
-      if(ev.target.closest("select,a,label,input,button,.pill"))return;
-      setze(p,k,!p.classList.contains("zu"));});
-  });
-  var cards=dash.querySelector(".cards");
-  function setze(el,k,zu){el.classList.toggle("zu",zu);if(zu)ui.zu[k]=1;else delete ui.zu[k];sichern();}
-  kacheln.forEach(function(x){if(ui.zu[x.key])x.el.classList.add("zu");});
-  if(cards&&ui.zu["Kennzahlen"])cards.classList.add("zu");
-  var bar=document.createElement("div");bar.className="kachelbar";
-  function knopf(t,fn,title){var b=document.createElement("button");b.type="button";b.className="ghost";b.textContent=t;if(title)b.title=title;b.addEventListener("click",fn);bar.appendChild(b);return b;}
-  var kz=cards?knopf("Kennzahlen",function(){var zu=!cards.classList.contains("zu");setze(cards,"Kennzahlen",zu);kz.setAttribute("aria-pressed",String(!zu));},"Kennzahlen ein-/ausblenden"):null;
-  if(kz)kz.setAttribute("aria-pressed",String(!cards.classList.contains("zu")));
-  knopf("Alle einklappen",function(){kacheln.forEach(function(x){x.el.classList.add("zu");ui.zu[x.key]=1;});
-    if(cards){cards.classList.add("zu");ui.zu["Kennzahlen"]=1;if(kz)kz.setAttribute("aria-pressed","false");}sichern();});
-  knopf("Alle ausklappen",function(){kacheln.forEach(function(x){x.el.classList.remove("zu");});
-    if(cards){cards.classList.remove("zu");if(kz)kz.setAttribute("aria-pressed","true");}ui.zu={};sichern();});
-  dash.insertBefore(bar,dash.firstChild);
-})();
-</script>
 </body>
 </html>
